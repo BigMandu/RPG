@@ -3,7 +3,11 @@ Binaries
 DerivedDataCache
 Intermediate
 Saved
-Content
+
+Content/StarterContent
+Content/MedievalDungeon
+Content/InfinityBladeIceLands
+
 .vscode
 .vs
 *.VC.db
