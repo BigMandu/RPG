@@ -39,7 +39,16 @@ AMainCharacter::AMainCharacter()
 	GetCharacterMovement()->JumpZVelocity = 400.f; //점프 높이 설정.
 	GetCharacterMovement()->AirControl = 0.2f;
 
+	///////////////////////////////
+	//***** Character Stats *****//
+	MaxHealth = 100.f;
+	Health = 66.f;
+	MaxStamina = 400.f;
+	Stamina = 290.f;
 
+	Coins = 0;
+	Souls = 0;
+	////////////////////////////
 }
 
 // Called when the game starts or when spawned
@@ -111,4 +120,29 @@ void AMainCharacter::TurnAtRate(float Rate)
 void AMainCharacter::LookUpRate(float Rate)
 {
 	AddControllerPitchInput(Rate * BaseLookUpRate * GetWorld()->GetDeltaSeconds());
+}
+
+/*************** Damage ****************/
+//////////   Damage 관련 함수   /////////
+/***************************************/
+void AMainCharacter::DecrementHealth(float Amount)
+{
+	if (Health - Amount <= 0.f)
+	{
+		Die();
+	}
+	else Health -= Amount;
+}
+void AMainCharacter::Die()
+{
+
+}
+
+
+/************ Money **************/
+///////// Coin, Soul 관련 함수 /////
+/*********************************/
+void AMainCharacter::IncrementCoin(int32 Amount)
+{
+	Coins += Amount;
 }

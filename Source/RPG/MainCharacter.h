@@ -28,6 +28,25 @@ public:
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = Camera)
 	float BaseLookUpRate;
 
+	/*****************************/
+	// Player Stats 관련  //
+	/*****************************/
+
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Player Stats");
+	float MaxHealth;
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Player Stats");
+	float Health;
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Player Stats");
+	float MaxStamina;
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Player Stats");
+	float Stamina;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Player Stats");
+	int32 Coins;
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Player Stats");
+	int32 Souls;
+	/////////////////////////////
+
 protected:
 	// Called when the game starts or when spawned
 	virtual void BeginPlay() override;
@@ -48,4 +67,14 @@ public:
 	void TurnAtRate(float Rate);
 	void LookUpRate(float Rate);
 
+	////Damage관련 함수////
+	void DecrementHealth(float Amount);
+	void Die();
+
+	////Coin, Soul function////
+	void IncrementCoin(int32 Amount);
+	//void DecrementCoin(int32 Amount);
+
+	//void IncrementSoul(int32 Amount);
+	//void DecrementSoul(int32 Amount);
 };
