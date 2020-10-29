@@ -6,6 +6,29 @@
 #include "GameFramework/Character.h"
 #include "MainCharacter.generated.h"
 
+UENUM(BlueprintType)
+enum class EMovementStatus : uint8
+{
+	EMS_Normal UMETA(DisplayName = "Normal"),
+	EMS_Sprint UMETA(DisplayName = "Sprint"),
+
+	EMS_MAX UMETA(DisplayName = "DefaultMAX")
+};
+
+UENUM(BlueprintType)
+enum class EStaminaStatus : uint8
+{
+	ESS_Normal UMETA(DisplayName = "Normal"),
+	ESS_BelowMinimum UMETA(DisplayName = "BelowMinimum"),
+	ESS_Exhausted UMETA(DisplayName = "Exhausted"),
+	ESS_ExhaustedRecovery UMETA(DisplayName = "ExhaustedRecovery"),
+	ESS_Recovery UMETA(DisplayName = "Recovery"),
+
+	ESS_MAX UMETA(DisplayName = "DefaultMAX")
+};
+
+
+
 UCLASS()
 class RPG_API AMainCharacter : public ACharacter
 {
@@ -14,7 +37,7 @@ class RPG_API AMainCharacter : public ACharacter
 public:
 	// Sets default values for this character's properties
 	AMainCharacter();
-
+	
 	//////////// 카메라 ///////////////
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = Camera, meta = (AllowPrivateAccess = "true"))
 	class USpringArmComponent* CameraBoom;
@@ -29,7 +52,12 @@ public:
 	float BaseLookUpRate;
 
 	/*****************************/
-	// Player Stats 관련  //
+	// Player Input   //
+	/*****************************/
+	bool bShiftKeyDown;
+
+	/*****************************/
+	// Player Stats   //
 	/*****************************/
 
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Player Stats");
@@ -45,7 +73,41 @@ public:
 	int32 Coins;
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Player Stats");
 	int32 Souls;
-	/////////////////////////////
+
+	/*******************************/
+	//-- Player Movement   ---//
+	/*******************************/
+
+	//움직임 Enum
+	UPROPERTY(VisibleAnywhere, BlueprintReadWrite, Category = "Enums")
+	EMovementStatus MovementStatus;
+	void SetMovementStatus(EMovementStatus Status);
+
+	//Stamina Enum
+	UPROPERTY(VisibleAnywhere, BlueprintReadWrite, Category = "Enums")
+	EStaminaStatus StaminaStatus;
+	FORCEINLINE void SetStaminaStatus(EStaminaStatus Status) { StaminaStatus = Status; }
+
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Movement")
+	float RunningSpeed;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Movement")
+	float SprintingSpeed;
+
+	//Sprint시 Stamina가 감소되는 비율
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Movement")
+	float StaminaDrainRate;
+
+	//Stamina가 회복되는 비율.
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Movement")
+	float StaminaRecoveryRate;
+
+	//Stamina의 최소 기준선, 다쓰고 회복될때 이 기준을 넘지 못하면, Stamina소모 기술 발동 불가.
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Movement")
+	float MinStamina; 
+	
+
 
 protected:
 	// Called when the game starts or when spawned
@@ -54,18 +116,27 @@ protected:
 public:	
 	// Called every frame
 	virtual void Tick(float DeltaTime) override;
-
 	// Called to bind functionality to input
 	virtual void SetupPlayerInputComponent(class UInputComponent* PlayerInputComponent) override;
-
-	//// Movement함수 ////
-	void MoveForward(float Value);
-	void MoveRight(float Value);
 
 	//// 회전 ////
 	//@param Rate 정규화 비율. 1.0 == 원하는 회전율 100%
 	void TurnAtRate(float Rate);
 	void LookUpRate(float Rate);
+
+	/*****************************/
+	// Player Input 함수  //
+	/*****************************/
+	void ShiftKeyDown();
+	void ShiftKeyUp();
+
+	/*******************************/
+	//-- Player Movement 함수 ---//
+	/*******************************/
+	void MoveForward(float Value);
+	void MoveRight(float Value);
+
+	
 
 	////Damage관련 함수////
 	void DecrementHealth(float Amount);
@@ -74,7 +145,7 @@ public:
 	////Coin, Soul function////
 	void IncrementCoin(int32 Amount);
 	//void DecrementCoin(int32 Amount);
-
 	//void IncrementSoul(int32 Amount);
 	//void DecrementSoul(int32 Amount);
 };
+

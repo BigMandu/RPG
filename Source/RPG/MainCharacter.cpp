@@ -33,18 +33,42 @@ AMainCharacter::AMainCharacter()
 	bUseControllerRotationRoll = false;
 	bUseControllerRotationYaw = false;
 
+	/*******************************/
+	//-- Player Input ---//
+	/*******************************/
+	bShiftKeyDown = false;
+
+	/*******************************/
+	//-- Player Movement Status ---//
+	/*******************************/
+
 	////움직임 (점프) 수정 ////
 	GetCharacterMovement()->bOrientRotationToMovement = true; //움직인 방향 = 진행방향으로 설정
 	GetCharacterMovement()->RotationRate = FRotator(0.f, 500.f, 0.f); //위의 회전속도값.
-	GetCharacterMovement()->JumpZVelocity = 400.f; //점프 높이 설정.
-	GetCharacterMovement()->AirControl = 0.2f;
+	GetCharacterMovement()->JumpZVelocity = 450.f; //점프 높이 설정.
+	GetCharacterMovement()->AirControl = 0.3f;
 
-	///////////////////////////////
+	//Enum 초기화
+	MovementStatus = EMovementStatus::EMS_Normal;
+	StaminaStatus = EStaminaStatus::ESS_Normal;
+	
+	//----Movement ----//
+	RunningSpeed = 600.f;
+	SprintingSpeed = 900.f;
+
+	StaminaRecoveryRate = 90.f;
+	StaminaDrainRate = 70.f;
+	MinStamina = 75.f;
+
+	
+
+	/*******************************/
 	//***** Character Stats *****//
+	/*******************************/
 	MaxHealth = 100.f;
-	Health = 66.f;
-	MaxStamina = 400.f;
-	Stamina = 290.f;
+	Health = 100.f;
+	MaxStamina = 300.f;
+	Stamina = 300.f;
 
 	Coins = 0;
 	Souls = 0;
@@ -62,6 +86,110 @@ void AMainCharacter::BeginPlay()
 void AMainCharacter::Tick(float DeltaTime)
 {
 	Super::Tick(DeltaTime);
+
+	float DeltaStaminaDrain = StaminaDrainRate * DeltaTime;
+	float DeltaStaminaRecovery = StaminaRecoveryRate * DeltaTime;
+	switch (StaminaStatus)
+	{
+	case EStaminaStatus::ESS_Normal:
+		if (bShiftKeyDown)
+		{
+			if (Stamina - DeltaStaminaDrain <= MinStamina)
+			{
+				SetStaminaStatus(EStaminaStatus::ESS_BelowMinimum);
+			}
+			else
+			{
+				Stamina -= DeltaStaminaDrain;
+			}
+			SetMovementStatus(EMovementStatus::EMS_Sprint);
+		}
+		else //Shift Key가 눌리지 않으면
+		{
+			if (Stamina + DeltaStaminaRecovery <= MaxStamina)
+			{
+				SetStaminaStatus(EStaminaStatus::ESS_Recovery);
+			}
+		}
+		break;
+
+	case EStaminaStatus::ESS_BelowMinimum:
+		if (bShiftKeyDown)
+		{
+			if(Stamina - DeltaStaminaDrain <= 0.f)
+			{ 
+				Stamina = 0.f;
+				SetStaminaStatus(EStaminaStatus::ESS_Exhausted);
+				SetMovementStatus(EMovementStatus::EMS_Normal);
+			}
+			else
+			{
+				Stamina -= DeltaStaminaDrain;
+				SetMovementStatus(EMovementStatus::EMS_Sprint);
+			}
+		}
+		else //Shitkey를 안눌렀을때
+		{
+			SetStaminaStatus(EStaminaStatus::ESS_Recovery);
+		}
+		break;
+
+	case EStaminaStatus::ESS_Exhausted:
+		if (bShiftKeyDown)
+		{
+			Stamina = 0.f;
+			SetMovementStatus(EMovementStatus::EMS_Normal);
+		}
+		else //Shift 키를 안눌렀을때
+		{
+			SetStaminaStatus(EStaminaStatus::ESS_ExhaustedRecovery);
+		}
+
+		break;
+
+	case EStaminaStatus::ESS_ExhaustedRecovery:
+		if (Stamina + DeltaStaminaRecovery >= MinStamina)
+		{
+			SetStaminaStatus(EStaminaStatus::ESS_Recovery);
+		}
+		else
+		{
+			Stamina += DeltaStaminaRecovery;
+			SetMovementStatus(EMovementStatus::EMS_Normal);
+		}
+		
+		break;
+
+	case EStaminaStatus::ESS_Recovery:
+		if (bShiftKeyDown) //눌렸을때는 바로 넘겨준다.
+		{
+			if (Stamina >= MinStamina)
+			{
+				SetStaminaStatus(EStaminaStatus::ESS_Normal);
+			}
+			else
+			{
+				SetStaminaStatus(EStaminaStatus::ESS_BelowMinimum);
+			}
+		}
+		else
+		{
+			if (Stamina + DeltaStaminaRecovery >= MaxStamina)
+			{
+				Stamina = MaxStamina;
+				SetStaminaStatus(EStaminaStatus::ESS_Normal);
+			}
+			else
+			{
+				Stamina += DeltaStaminaRecovery;
+			}
+			SetMovementStatus(EMovementStatus::EMS_Normal);
+		}
+		break;
+
+	default:
+		break;
+	}
 
 }
 
@@ -81,8 +209,28 @@ void AMainCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputCompo
 
 	PlayerInputComponent->BindAction("Jump", EInputEvent::IE_Pressed, this, &ACharacter::Jump);
 	PlayerInputComponent->BindAction("Jump", EInputEvent::IE_Released, this, &ACharacter::StopJumping);
+	PlayerInputComponent->BindAction("Sprint", EInputEvent::IE_Pressed, this, &AMainCharacter::ShiftKeyDown);
+	PlayerInputComponent->BindAction("Sprint", EInputEvent::IE_Released, this, &AMainCharacter::ShiftKeyUp);
+
 
 }
+
+/*************** Input **************/
+//////////   Input 관련 함수  ////////
+/**************************************/
+void AMainCharacter::ShiftKeyDown()
+{
+	bShiftKeyDown = true;
+}
+void AMainCharacter::ShiftKeyUp()
+{
+	bShiftKeyDown = false;
+}
+
+
+/*************** Movement **************/
+//////////   Movement 관련 함수  ////////
+/**************************************/
 
 void AMainCharacter::MoveForward(float Value)
 {
@@ -121,6 +269,21 @@ void AMainCharacter::LookUpRate(float Rate)
 {
 	AddControllerPitchInput(Rate * BaseLookUpRate * GetWorld()->GetDeltaSeconds());
 }
+
+//Movement Status
+void AMainCharacter::SetMovementStatus(EMovementStatus Status)
+{
+	MovementStatus = Status;
+	if (MovementStatus == EMovementStatus::EMS_Sprint)
+	{
+		GetCharacterMovement()->MaxWalkSpeed = SprintingSpeed;
+	}
+	else
+	{
+		GetCharacterMovement()->MaxWalkSpeed = RunningSpeed;
+	}
+}
+
 
 /*************** Damage ****************/
 //////////   Damage 관련 함수   /////////

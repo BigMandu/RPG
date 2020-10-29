@@ -17,6 +17,12 @@ public:
 
 	virtual void NativeInitializeAnimation() override;
 	
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = Movement)
+	class APawn* Owner;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = Movement)
+	class AMainCharacter* MainChar; //BP상에서 Get Pawn owner를 하지 않고 Main에 바로 접근하기 위해서
+
 	UFUNCTION(BlueprintCallable, Category = AnimationProperties)
 	void UpdateAnimationProperties();
 
@@ -25,9 +31,6 @@ public:
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = Movement)
 	bool bIsinAir;
-	
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = Movement)
-	class APawn* Owner;
 
 	
 };
