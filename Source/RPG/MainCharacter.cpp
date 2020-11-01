@@ -5,6 +5,7 @@
 #include "GameFramework/SpringArmComponent.h"
 #include "Camera/CameraComponent.h"
 #include "GameFramework/CharacterMovementComponent.h"
+#include "Weapon.h"
 
 // Sets default values
 AMainCharacter::AMainCharacter()
@@ -13,7 +14,9 @@ AMainCharacter::AMainCharacter()
 	PrimaryActorTick.bCanEverTick = true;
 
 	
-	/////////// 카메라 관련 ////////////
+	/*******************************/
+	//------   카메라  관련   ------//
+	/*******************************/
 	CameraBoom = CreateDefaultSubobject<USpringArmComponent>(TEXT("CameraBoom"));
 	CameraBoom->SetupAttachment(GetRootComponent());
 	CameraBoom->TargetArmLength = 400.f;
@@ -36,6 +39,8 @@ AMainCharacter::AMainCharacter()
 	/*******************************/
 	//-- Player Input ---//
 	/*******************************/
+	bShiftKeyDown = false;
+	bEKeyDown = false;
 	bShiftKeyDown = false;
 
 	/*******************************/
@@ -89,6 +94,8 @@ void AMainCharacter::Tick(float DeltaTime)
 
 	float DeltaStaminaDrain = StaminaDrainRate * DeltaTime;
 	float DeltaStaminaRecovery = StaminaRecoveryRate * DeltaTime;
+	
+	//StaminaStatus 관리.
 	switch (StaminaStatus)
 	{
 	case EStaminaStatus::ESS_Normal:
@@ -211,7 +218,10 @@ void AMainCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputCompo
 	PlayerInputComponent->BindAction("Jump", EInputEvent::IE_Released, this, &ACharacter::StopJumping);
 	PlayerInputComponent->BindAction("Sprint", EInputEvent::IE_Pressed, this, &AMainCharacter::ShiftKeyDown);
 	PlayerInputComponent->BindAction("Sprint", EInputEvent::IE_Released, this, &AMainCharacter::ShiftKeyUp);
-
+	PlayerInputComponent->BindAction("InteractionKey", EInputEvent::IE_Pressed, this, &AMainCharacter::EKeyDown);
+	PlayerInputComponent->BindAction("InteractionKey", EInputEvent::IE_Released, this, &AMainCharacter::EKeyUp);
+	PlayerInputComponent->BindAction("LMB", EInputEvent::IE_Pressed, this, &AMainCharacter::LMBDown);
+	PlayerInputComponent->BindAction("LMB", EInputEvent::IE_Released, this, &AMainCharacter::LMBUp);
 
 }
 
@@ -225,6 +235,33 @@ void AMainCharacter::ShiftKeyDown()
 void AMainCharacter::ShiftKeyUp()
 {
 	bShiftKeyDown = false;
+}
+
+void AMainCharacter::EKeyDown()
+{
+	bEKeyDown = true;
+	if (OverlappingItem)
+	{
+		AWeapon* Weapon = Cast<AWeapon>(OverlappingItem);
+		if(Weapon)
+		{ 
+			Weapon->Equip(this);
+		}
+	}
+}
+void AMainCharacter::EKeyUp()
+{
+	bEKeyDown = false;
+}
+
+void AMainCharacter::LMBDown()
+{
+	bLMBDown = true;
+}
+
+void AMainCharacter::LMBUp()
+{
+	bLMBDown = false;
 }
 
 
@@ -308,4 +345,16 @@ void AMainCharacter::Die()
 void AMainCharacter::IncrementCoin(int32 Amount)
 {
 	Coins += Amount;
+}
+
+/************ Money **************/
+///////// Weapon 관련 함수 /////
+/*********************************/
+void AMainCharacter::SetEquippedWeapon(AWeapon* WeaponToSet)
+{
+	if (EquippedWeapon) //기존 장착된게 있으면
+	{
+		EquippedWeapon->Destroy(); //destory하고 장착.
+	}
+	EquippedWeapon = WeaponToSet;
 }

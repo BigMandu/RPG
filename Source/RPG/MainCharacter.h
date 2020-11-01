@@ -55,6 +55,8 @@ public:
 	// Player Input   //
 	/*****************************/
 	bool bShiftKeyDown;
+	bool bEKeyDown;
+	bool bLMBDown;
 
 	/*****************************/
 	// Player Stats   //
@@ -81,12 +83,10 @@ public:
 	//움직임 Enum
 	UPROPERTY(VisibleAnywhere, BlueprintReadWrite, Category = "Enums")
 	EMovementStatus MovementStatus;
-	void SetMovementStatus(EMovementStatus Status);
-
+	
 	//Stamina Enum
 	UPROPERTY(VisibleAnywhere, BlueprintReadWrite, Category = "Enums")
 	EStaminaStatus StaminaStatus;
-	FORCEINLINE void SetStaminaStatus(EStaminaStatus Status) { StaminaStatus = Status; }
 
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Movement")
@@ -107,6 +107,14 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Movement")
 	float MinStamina; 
 	
+	/*******************************/
+	//---     Player Weapon     ---//
+	/*******************************/
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Item")
+	class AWeapon* EquippedWeapon;
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Item")
+	class AItem* OverlappingItem;
 
 
 protected:
@@ -129,6 +137,11 @@ public:
 	/*****************************/
 	void ShiftKeyDown();
 	void ShiftKeyUp();
+	void EKeyDown();
+	void EKeyUp();
+	void LMBDown();
+	void LMBUp();
+
 
 	/*******************************/
 	//-- Player Movement 함수 ---//
@@ -136,7 +149,8 @@ public:
 	void MoveForward(float Value);
 	void MoveRight(float Value);
 
-	
+	void SetMovementStatus(EMovementStatus Status);
+	FORCEINLINE void SetStaminaStatus(EStaminaStatus Status) { StaminaStatus = Status; }
 
 	////Damage관련 함수////
 	void DecrementHealth(float Amount);
@@ -147,5 +161,13 @@ public:
 	//void DecrementCoin(int32 Amount);
 	//void IncrementSoul(int32 Amount);
 	//void DecrementSoul(int32 Amount);
+
+	/*******************************/
+	//---     Player Weapon     ---//
+	/*******************************/
+	void SetEquippedWeapon(AWeapon* WeaponToSet);
+	FORCEINLINE void SetActiveOverlappingItem(AItem* ItemToSet) { OverlappingItem = ItemToSet; }
+
+
 };
 
