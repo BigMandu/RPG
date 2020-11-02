@@ -257,6 +257,10 @@ void AMainCharacter::EKeyUp()
 void AMainCharacter::LMBDown()
 {
 	bLMBDown = true;
+	if (EquippedWeapon)
+	{
+		Attack();
+	}
 }
 
 void AMainCharacter::LMBUp()
@@ -271,7 +275,7 @@ void AMainCharacter::LMBUp()
 
 void AMainCharacter::MoveForward(float Value)
 {
-	if (Controller != nullptr && Value != 0.f)
+	if ((Controller != nullptr) && (Value != 0.f) && (!bAttacking))
 	{
 		//Cameraboom도 ControlRotation을 이용. ControlRotation을 이용해서 회전방향으로 진행.
 		const FRotator Rotation = Controller->GetControlRotation();
@@ -286,7 +290,7 @@ void AMainCharacter::MoveForward(float Value)
 
 void AMainCharacter::MoveRight(float Value)
 {
-	if (Controller != nullptr && Value != 0.f)
+	if ((Controller != nullptr) && (Value != 0.f) && (!bAttacking))
 	{
 		const FRotator Rotation = Controller->GetControlRotation();
 		const FRotator YawRotation(0.f, Rotation.Yaw, 0.f);
@@ -321,6 +325,14 @@ void AMainCharacter::SetMovementStatus(EMovementStatus Status)
 	}
 }
 
+/************ Money **************/
+///////// Coin, Soul 관련 함수 /////
+/*********************************/
+void AMainCharacter::IncrementCoin(int32 Amount)
+{
+	Coins += Amount;
+}
+
 
 /*************** Damage ****************/
 //////////   Damage 관련 함수   /////////
@@ -338,16 +350,7 @@ void AMainCharacter::Die()
 
 }
 
-
-/************ Money **************/
-///////// Coin, Soul 관련 함수 /////
-/*********************************/
-void AMainCharacter::IncrementCoin(int32 Amount)
-{
-	Coins += Amount;
-}
-
-/************ Money **************/
+/************ Weapon **************/
 ///////// Weapon 관련 함수 /////
 /*********************************/
 void AMainCharacter::SetEquippedWeapon(AWeapon* WeaponToSet)
@@ -357,4 +360,26 @@ void AMainCharacter::SetEquippedWeapon(AWeapon* WeaponToSet)
 		EquippedWeapon->Destroy(); //destory하고 장착.
 	}
 	EquippedWeapon = WeaponToSet;
+}
+
+/************ Combat **************/
+///////// Combat 관련 함수 /////
+/*********************************/
+void AMainCharacter::Attack()
+{
+	bAttacking = true;
+
+	UAnimInstance* AnimInstance = GetMesh()->GetAnimInstance();
+
+	if (AnimInstance && CombatMontage)
+	{
+		AnimInstance->Montage_Play(CombatMontage, 1.0f);
+
+		AnimInstance->Montage_JumpToSection(FName("Attack_1"), CombatMontage);
+	}
+}
+
+void AMainCharacter::AttackEnd()
+{
+	bAttacking = false;
 }

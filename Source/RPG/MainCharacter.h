@@ -117,6 +117,15 @@ public:
 	class AItem* OverlappingItem;
 
 
+	/*******************************/
+	//---     Player Combat     ---//
+	/*******************************/
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Combat")
+	bool bAttacking;
+
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Combat")
+	class UAnimMontage* CombatMontage;
+
 protected:
 	// Called when the game starts or when spawned
 	virtual void BeginPlay() override;
@@ -168,6 +177,12 @@ public:
 	void SetEquippedWeapon(AWeapon* WeaponToSet);
 	FORCEINLINE void SetActiveOverlappingItem(AItem* ItemToSet) { OverlappingItem = ItemToSet; }
 
+
+	/*******************************/
+	//---     Player Combat     ---//
+	/*******************************/
+	void Attack();
+	void AttackEnd();
 
 };
 
