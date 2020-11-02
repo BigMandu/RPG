@@ -77,7 +77,13 @@ AMainCharacter::AMainCharacter()
 
 	Coins = 0;
 	Souls = 0;
-	////////////////////////////
+	
+	/*******************************/
+	//***** Player Combat  *****//
+	/*******************************/
+	bAttacking = false;
+	AttackCount = 0;
+
 }
 
 // Called when the game starts or when spawned
@@ -368,18 +374,40 @@ void AMainCharacter::SetEquippedWeapon(AWeapon* WeaponToSet)
 void AMainCharacter::Attack()
 {
 	bAttacking = true;
-
 	UAnimInstance* AnimInstance = GetMesh()->GetAnimInstance();
 
 	if (AnimInstance && CombatMontage)
 	{
-		AnimInstance->Montage_Play(CombatMontage, 1.0f);
-
-		AnimInstance->Montage_JumpToSection(FName("Attack_1"), CombatMontage);
+		switch (AttackCount)
+		{
+		case 0:
+			AnimInstance->Montage_Play(CombatMontage, 1.0f);
+			AnimInstance->Montage_JumpToSection(FName("Attack_1"), CombatMontage);
+			AttackCount++;
+			break;
+		case 1:
+			AnimInstance->Montage_Play(CombatMontage, 1.0f);
+			AnimInstance->Montage_JumpToSection(FName("Attack_2"), CombatMontage);
+			AttackCount++;
+			break;
+		case 2:
+			AnimInstance->Montage_Play(CombatMontage, 1.0f);
+			AnimInstance->Montage_JumpToSection(FName("Attack_3"), CombatMontage);
+			AttackCount++;
+			break;
+		case 3:
+			AnimInstance->Montage_Play(CombatMontage, 1.0f);
+			AnimInstance->Montage_JumpToSection(FName("Attack_4"), CombatMontage);
+			AttackCount = 0;
+			break;
+		default:
+			break;
+		}		
 	}
 }
 
 void AMainCharacter::AttackEnd()
 {
 	bAttacking = false;
+	AttackCount = 0;
 }

@@ -123,6 +123,9 @@ public:
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Combat")
 	bool bAttacking;
 
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Combat")
+	int32 AttackCount;
+
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Combat")
 	class UAnimMontage* CombatMontage;
 
@@ -181,7 +184,9 @@ public:
 	/*******************************/
 	//---     Player Combat     ---//
 	/*******************************/
+	UFUNCTION(BlueprintCallable)
 	void Attack();
+	UFUNCTION(BlueprintCallable)
 	void AttackEnd();
 
 };
