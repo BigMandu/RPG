@@ -82,6 +82,7 @@ AMainCharacter::AMainCharacter()
 	//***** Player Combat  *****//
 	/*******************************/
 	bAttacking = false;
+	bSaveAttack = false;
 	AttackCount = 0;
 
 }
@@ -263,9 +264,17 @@ void AMainCharacter::EKeyUp()
 void AMainCharacter::LMBDown()
 {
 	bLMBDown = true;
+
 	if (EquippedWeapon)
 	{
-		Attack();
+		if (!bAttacking)
+		{
+			Attack();
+		}
+		else
+		{
+			bSaveAttack = true;
+		}
 	}
 }
 
@@ -373,41 +382,51 @@ void AMainCharacter::SetEquippedWeapon(AWeapon* WeaponToSet)
 /*********************************/
 void AMainCharacter::Attack()
 {
-	bAttacking = true;
 	UAnimInstance* AnimInstance = GetMesh()->GetAnimInstance();
 
 	if (AnimInstance && CombatMontage)
 	{
-		switch (AttackCount)
+		bAttacking = true;
+		if(!bSaveAttack && bAttacking)
 		{
-		case 0:
 			AnimInstance->Montage_Play(CombatMontage, 1.0f);
-			AnimInstance->Montage_JumpToSection(FName("Attack_1"), CombatMontage);
-			AttackCount++;
-			break;
-		case 1:
-			AnimInstance->Montage_Play(CombatMontage, 1.0f);
-			AnimInstance->Montage_JumpToSection(FName("Attack_2"), CombatMontage);
-			AttackCount++;
-			break;
-		case 2:
-			AnimInstance->Montage_Play(CombatMontage, 1.0f);
-			AnimInstance->Montage_JumpToSection(FName("Attack_3"), CombatMontage);
-			AttackCount++;
-			break;
-		case 3:
-			AnimInstance->Montage_Play(CombatMontage, 1.0f);
-			AnimInstance->Montage_JumpToSection(FName("Attack_4"), CombatMontage);
-			AttackCount = 0;
-			break;
-		default:
-			break;
-		}		
+			switch (AttackCount)
+			{
+			case 0:
+				AnimInstance->Montage_JumpToSection(FName("Attack_1"), CombatMontage);
+				AttackCount++;
+				break;
+			case 1:
+				AnimInstance->Montage_JumpToSection(FName("Attack_2"), CombatMontage);
+				AttackCount++;
+				break;
+			case 2:
+				AnimInstance->Montage_JumpToSection(FName("Attack_3"), CombatMontage);
+				AttackCount++;
+				break;
+			case 3:
+				AnimInstance->Montage_JumpToSection(FName("Attack_4"), CombatMontage);
+				AttackCount = 0;
+				break;
+			default:
+				break;
+			}
+		}
 	}
 }
 
-void AMainCharacter::AttackEnd()
+void AMainCharacter::ComboSave()
+{
+	if (bSaveAttack)
+	{
+		bSaveAttack = false;
+		Attack();
+	}
+}
+
+void AMainCharacter::ComboReset()
 {
 	bAttacking = false;
+	bSaveAttack = false;
 	AttackCount = 0;
 }

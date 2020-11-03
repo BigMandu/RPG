@@ -120,14 +120,17 @@ public:
 	/*******************************/
 	//---     Player Combat     ---//
 	/*******************************/
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Combat")
+	class UAnimMontage* CombatMontage;
+
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Combat")
 	bool bAttacking;
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Combat")
-	int32 AttackCount;
+	bool bSaveAttack;
 
-	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Combat")
-	class UAnimMontage* CombatMontage;
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Combat")
+	int32 AttackCount;
 
 protected:
 	// Called when the game starts or when spawned
@@ -184,10 +187,13 @@ public:
 	/*******************************/
 	//---     Player Combat     ---//
 	/*******************************/
-	UFUNCTION(BlueprintCallable)
 	void Attack();
+
 	UFUNCTION(BlueprintCallable)
-	void AttackEnd();
+	void ComboSave();
+
+	UFUNCTION(BlueprintCallable)
+	void ComboReset();
 
 };
 
