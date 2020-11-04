@@ -57,6 +57,7 @@ public:
 	bool bShiftKeyDown;
 	bool bEKeyDown;
 	bool bLMBDown;
+	bool bJumpKeyDown;
 
 	/*****************************/
 	// Player Stats   //
@@ -87,7 +88,6 @@ public:
 	//Stamina Enum
 	UPROPERTY(VisibleAnywhere, BlueprintReadWrite, Category = "Enums")
 	EStaminaStatus StaminaStatus;
-
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Movement")
 	float RunningSpeed;
@@ -123,6 +123,9 @@ public:
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Combat")
 	class UAnimMontage* CombatMontage;
 
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Combat")
+	class UAnimMontage* AirCombatMontage;
+
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Combat")
 	bool bAttacking;
 
@@ -156,7 +159,8 @@ public:
 	void EKeyUp();
 	void LMBDown();
 	void LMBUp();
-
+	virtual void Jump() override;
+	virtual void StopJumping() override;
 
 	/*******************************/
 	//-- Player Movement 함수 ---//
@@ -189,11 +193,23 @@ public:
 	/*******************************/
 	void Attack();
 
+	void AttackAir();
+
+	bool CalcAirAttack();
+
 	UFUNCTION(BlueprintCallable)
 	void ComboSave();
 
 	UFUNCTION(BlueprintCallable)
 	void ComboReset();
+
+
+
+	/*******************************/
+	//--- Game Level,Save,Load  ---//
+	/*******************************/
+	//Level TransitionVolume에 Overlap될때 호출될 함수.
+	void SwitchLevel(FName LevelName);
 
 };
 

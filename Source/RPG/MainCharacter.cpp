@@ -2,10 +2,12 @@
 
 
 #include "MainCharacter.h"
-#include "GameFramework/SpringArmComponent.h"
-#include "Camera/CameraComponent.h"
-#include "GameFramework/CharacterMovementComponent.h"
 #include "Weapon.h"
+#include "Camera/CameraComponent.h"
+#include "GameFramework/SpringArmComponent.h"
+#include "GameFramework/CharacterMovementComponent.h"
+#include "Kismet/GameplayStatics.h"
+
 
 // Sets default values
 AMainCharacter::AMainCharacter()
@@ -42,6 +44,7 @@ AMainCharacter::AMainCharacter()
 	bShiftKeyDown = false;
 	bEKeyDown = false;
 	bShiftKeyDown = false;
+	bJumpKeyDown = false;
 
 	/*******************************/
 	//-- Player Movement Status ---//
@@ -53,6 +56,7 @@ AMainCharacter::AMainCharacter()
 	GetCharacterMovement()->JumpZVelocity = 450.f; //점프 높이 설정.
 	GetCharacterMovement()->AirControl = 0.3f;
 
+	
 	//Enum 초기화
 	MovementStatus = EMovementStatus::EMS_Normal;
 	StaminaStatus = EStaminaStatus::ESS_Normal;
@@ -221,7 +225,7 @@ void AMainCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputCompo
 	PlayerInputComponent->BindAxis("TurnRate", this, &AMainCharacter::TurnAtRate);
 	PlayerInputComponent->BindAxis("LookUpRate", this, &AMainCharacter::LookUpRate);
 
-	PlayerInputComponent->BindAction("Jump", EInputEvent::IE_Pressed, this, &ACharacter::Jump);
+	PlayerInputComponent->BindAction("Jump", EInputEvent::IE_Pressed, this, &AMainCharacter::Jump);
 	PlayerInputComponent->BindAction("Jump", EInputEvent::IE_Released, this, &ACharacter::StopJumping);
 	PlayerInputComponent->BindAction("Sprint", EInputEvent::IE_Pressed, this, &AMainCharacter::ShiftKeyDown);
 	PlayerInputComponent->BindAction("Sprint", EInputEvent::IE_Released, this, &AMainCharacter::ShiftKeyUp);
@@ -283,6 +287,17 @@ void AMainCharacter::LMBUp()
 	bLMBDown = false;
 }
 
+void AMainCharacter::Jump()
+{
+	Super::Jump();
+	bJumpKeyDown = true;
+}
+
+void AMainCharacter::StopJumping()
+{
+	Super::StopJumping();
+	bJumpKeyDown = false;
+}
 
 /*************** Movement **************/
 //////////   Movement 관련 함수  ////////
@@ -382,13 +397,18 @@ void AMainCharacter::SetEquippedWeapon(AWeapon* WeaponToSet)
 /*********************************/
 void AMainCharacter::Attack()
 {
+	bool fall = GetCharacterMovement()->IsFalling();
 	UAnimInstance* AnimInstance = GetMesh()->GetAnimInstance();
-
 	if (AnimInstance && CombatMontage)
 	{
 		bAttacking = true;
 		if(!bSaveAttack && bAttacking)
 		{
+			if (fall && CalcAirAttack())
+			{
+				AttackAir();
+				return;
+			}
 			AnimInstance->Montage_Play(CombatMontage, 1.0f);
 			switch (AttackCount)
 			{
@@ -415,6 +435,55 @@ void AMainCharacter::Attack()
 	}
 }
 
+bool AMainCharacter::CalcAirAttack()
+{
+	bool fall = GetCharacterMovement()->IsFalling();
+
+	float HalfHeight = GetDefaultHalfHeight();
+
+	float ActorLocationZ = GetCharacterMovement()->GetActorLocation().Z;
+	float FeetLocation = GetCharacterMovement()->GetActorFeetLocation().Z;
+	FBasedPosition FeetLocationBase = GetCharacterMovement()->GetActorFeetLocationBased();
+	float baseFeetLocation = FeetLocationBase.CachedBaseLocation.Z;
+	
+	FVector UpVector = GetActorUpVector();
+	float UpVectorsize = UpVector.Size();
+	float UpVectorZ = UpVector.Z;
+
+	UE_LOG(LogTemp, Warning, TEXT("HalfHeight : %f // ActorLocation Z : %f // FeetLocation Z : %f // FeetLocationBased Z : %f"), HalfHeight, ActorLocationZ, FeetLocation, baseFeetLocation);
+	UE_LOG(LogTemp, Warning, TEXT("UpVectorsize : %f // UpVectorZ : %f"), UpVectorsize, UpVectorZ);
+	if (FeetLocation >= (HalfHeight/2) && fall)
+	{
+		return true;
+	}
+	else return false;
+}
+
+void AMainCharacter::AttackAir()
+{
+	float FeetLocation = GetCharacterMovement()->GetActorFeetLocation().Z;
+	float HalfHeight = GetDefaultHalfHeight();
+	UAnimInstance* AnimInstance = GetMesh()->GetAnimInstance();
+	//UE_LOG(LogTemp, Warning, TEXT("AttackAir()"));
+	//UE_LOG(LogTemp, Warning, TEXT("HalfHeight : %f // FeetLocation Z : %f"), HalfHeight, FeetLocation);
+	
+	if (AnimInstance && AirCombatMontage)
+	{
+		AnimInstance->Montage_Play(AirCombatMontage, 1.0f);
+		if (FeetLocation >= HalfHeight*2)
+		{
+			AnimInstance->Montage_JumpToSection(FName("AirAttack_2"), AirCombatMontage);
+			UE_LOG(LogTemp, Warning, TEXT("Land Crash Attack"));
+		}
+		else
+		{
+			AnimInstance->Montage_JumpToSection(FName("AirAttack_1"), AirCombatMontage);
+			UE_LOG(LogTemp, Warning, TEXT("Air Attack"));
+		}
+	}
+	ComboReset();
+}
+
 void AMainCharacter::ComboSave()
 {
 	if (bSaveAttack)
@@ -429,4 +498,27 @@ void AMainCharacter::ComboReset()
 	bAttacking = false;
 	bSaveAttack = false;
 	AttackCount = 0;
+}
+
+
+/*******************************/
+//--- Game Level,Save,Load  ---//
+/*******************************/
+
+//나중에 MainChar의 Stats과 weapon들을 넘겨줘야함.
+void AMainCharacter::SwitchLevel(FName LevelName)
+{
+	UWorld* World = GetWorld();
+	if (World)
+	{
+		FString MapName = World->GetMapName();
+
+		FName CurrentLevelName(*MapName);
+
+		//변경할 Level과 현재Level이 다를때 Open world를 한다.
+		if (CurrentLevelName != LevelName)
+		{
+			UGameplayStatics::OpenLevel(World, LevelName);
+		}
+	}
 }
