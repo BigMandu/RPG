@@ -65,6 +65,8 @@ void AWeapon::Equip(class AMainCharacter* MainChar)
 			RightWeaponSocket->AttachActor(this, MainChar->GetMesh());
 			MainChar->SetEquippedWeapon(this); //MainÀÇ SetEquipped Weapon È£Ãâ.
 			MainChar->SetActiveOverlappingItem(nullptr);
+			
+			
 		}
 		if (EquipedSound)
 		{

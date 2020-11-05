@@ -7,6 +7,8 @@
 #include "GameFramework/SpringArmComponent.h"
 #include "GameFramework/CharacterMovementComponent.h"
 #include "Kismet/GameplayStatics.h"
+#include "Sound/SoundCue.h"
+#include "DrawDebugHelpers.h"
 
 
 // Sets default values
@@ -47,13 +49,13 @@ AMainCharacter::AMainCharacter()
 	bJumpKeyDown = false;
 
 	/*******************************/
-	//-- Player Movement Status ---//
+	//-- Player Movement  ---//
 	/*******************************/
 
 	////움직임 (점프) 수정 ////
 	GetCharacterMovement()->bOrientRotationToMovement = true; //움직인 방향 = 진행방향으로 설정
 	GetCharacterMovement()->RotationRate = FRotator(0.f, 500.f, 0.f); //위의 회전속도값.
-	GetCharacterMovement()->JumpZVelocity = 450.f; //점프 높이 설정.
+	GetCharacterMovement()->JumpZVelocity = 550.f; //점프 높이 설정.
 	GetCharacterMovement()->AirControl = 0.3f;
 
 	
@@ -88,6 +90,7 @@ AMainCharacter::AMainCharacter()
 	bAttacking = false;
 	bSaveAttack = false;
 	AttackCount = 0;
+	CurHeight = 0.f;
 
 }
 
@@ -102,10 +105,37 @@ void AMainCharacter::BeginPlay()
 void AMainCharacter::Tick(float DeltaTime)
 {
 	Super::Tick(DeltaTime);
-
 	float DeltaStaminaDrain = StaminaDrainRate * DeltaTime;
 	float DeltaStaminaRecovery = StaminaRecoveryRate * DeltaTime;
 	
+
+	/***Line Trace (캐릭터 밑에서부터 Mesh까지의 거리측정 ****/
+	FHitResult OutHit;
+	FVector StartPoint = GetCharacterMovement()->GetActorFeetLocation();
+	FVector EndPoint = FVector(StartPoint.X, StartPoint.Y, -500.f);
+
+	FCollisionQueryParams CollisionParams;
+	DrawDebugLine(GetWorld(), StartPoint, EndPoint, FColor::Red, false, 1.f, 0, 2);
+
+	bool isHit = GetWorld()->LineTraceSingleByChannel(OutHit, StartPoint, EndPoint, ECollisionChannel::ECC_Visibility, CollisionParams);
+
+	if (isHit)
+	{
+		if (OutHit.bBlockingHit)
+		{
+			CurHeight = StartPoint.Z - OutHit.ImpactPoint.Z;
+			if (GEngine)
+			{
+				GEngine->AddOnScreenDebugMessage(-1, 1.f, FColor::Green, FString::Printf(TEXT("SPoint xyz : %.2f %.2f %.2f"), 
+					StartPoint.X, StartPoint.Y, StartPoint.Z));
+				GEngine->AddOnScreenDebugMessage(-1, 1.f, FColor::Green, FString::Printf(TEXT("Hit Imact Point : %s"), 
+					*OutHit.ImpactPoint.ToString()));
+				GEngine->AddOnScreenDebugMessage(-1, 1.f, FColor::Red, FString::Printf(TEXT("Calc Height : %f"),
+					CurHeight));
+			}
+		}
+	}
+
 	//StaminaStatus 관리.
 	switch (StaminaStatus)
 	{
@@ -289,8 +319,11 @@ void AMainCharacter::LMBUp()
 
 void AMainCharacter::Jump()
 {
-	Super::Jump();
-	bJumpKeyDown = true;
+	if (!bAttacking)
+	{
+		Super::Jump();
+		bJumpKeyDown = true;
+	}
 }
 
 void AMainCharacter::StopJumping()
@@ -399,16 +432,18 @@ void AMainCharacter::Attack()
 {
 	bool fall = GetCharacterMovement()->IsFalling();
 	UAnimInstance* AnimInstance = GetMesh()->GetAnimInstance();
+	
+	if (fall && CalcAirAttack()) //공중에 있으면 AttackAir함수로
+	{
+		AttackAir();
+		return;
+	}
+
 	if (AnimInstance && CombatMontage)
 	{
 		bAttacking = true;
 		if(!bSaveAttack && bAttacking)
 		{
-			if (fall && CalcAirAttack())
-			{
-				AttackAir();
-				return;
-			}
 			AnimInstance->Montage_Play(CombatMontage, 1.0f);
 			switch (AttackCount)
 			{
@@ -438,21 +473,9 @@ void AMainCharacter::Attack()
 bool AMainCharacter::CalcAirAttack()
 {
 	bool fall = GetCharacterMovement()->IsFalling();
-
 	float HalfHeight = GetDefaultHalfHeight();
 
-	float ActorLocationZ = GetCharacterMovement()->GetActorLocation().Z;
-	float FeetLocation = GetCharacterMovement()->GetActorFeetLocation().Z;
-	FBasedPosition FeetLocationBase = GetCharacterMovement()->GetActorFeetLocationBased();
-	float baseFeetLocation = FeetLocationBase.CachedBaseLocation.Z;
-	
-	FVector UpVector = GetActorUpVector();
-	float UpVectorsize = UpVector.Size();
-	float UpVectorZ = UpVector.Z;
-
-	UE_LOG(LogTemp, Warning, TEXT("HalfHeight : %f // ActorLocation Z : %f // FeetLocation Z : %f // FeetLocationBased Z : %f"), HalfHeight, ActorLocationZ, FeetLocation, baseFeetLocation);
-	UE_LOG(LogTemp, Warning, TEXT("UpVectorsize : %f // UpVectorZ : %f"), UpVectorsize, UpVectorZ);
-	if (FeetLocation >= (HalfHeight/2) && fall)
+	if (CurHeight >= (HalfHeight/2) && fall)
 	{
 		return true;
 	}
@@ -461,27 +484,24 @@ bool AMainCharacter::CalcAirAttack()
 
 void AMainCharacter::AttackAir()
 {
-	float FeetLocation = GetCharacterMovement()->GetActorFeetLocation().Z;
-	float HalfHeight = GetDefaultHalfHeight();
 	UAnimInstance* AnimInstance = GetMesh()->GetAnimInstance();
-	//UE_LOG(LogTemp, Warning, TEXT("AttackAir()"));
-	//UE_LOG(LogTemp, Warning, TEXT("HalfHeight : %f // FeetLocation Z : %f"), HalfHeight, FeetLocation);
+	float HalfHeight = GetDefaultHalfHeight();
 	
-	if (AnimInstance && AirCombatMontage)
+	if (AnimInstance && AirCombatMontage && !bAttacking)
 	{
-		AnimInstance->Montage_Play(AirCombatMontage, 1.0f);
-		if (FeetLocation >= HalfHeight*2)
+		bAttacking = true;
+		AnimInstance->Montage_Play(AirCombatMontage, 1.2f);
+		if (CurHeight >= HalfHeight*2)
 		{
 			AnimInstance->Montage_JumpToSection(FName("AirAttack_2"), AirCombatMontage);
-			UE_LOG(LogTemp, Warning, TEXT("Land Crash Attack"));
+			UE_LOG(LogTemp, Warning, TEXT("Land Crash Attack // CurHeight : %f"), CurHeight);
 		}
 		else
 		{
 			AnimInstance->Montage_JumpToSection(FName("AirAttack_1"), AirCombatMontage);
-			UE_LOG(LogTemp, Warning, TEXT("Air Attack"));
+			UE_LOG(LogTemp, Warning, TEXT("Air Attack // CurHeight : %f"), CurHeight);
 		}
 	}
-	ComboReset();
 }
 
 void AMainCharacter::ComboSave()

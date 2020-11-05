@@ -126,6 +126,8 @@ public:
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Combat")
 	class UAnimMontage* AirCombatMontage;
 
+	float CurHeight;
+
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Combat")
 	bool bAttacking;
 
