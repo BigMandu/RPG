@@ -37,7 +37,6 @@ void UMainChar_AnimInstance::UpdateAnimationProperties()
 		FVector LateralSpeed = FVector(Speed.X, Speed.Y, 0.f); //수평속도를 따로 구한다.
 
 		MovementSpeed = LateralSpeed.Size();
-
 		bIsinAir = Owner->GetMovementComponent()->IsFalling();
 
 	}
