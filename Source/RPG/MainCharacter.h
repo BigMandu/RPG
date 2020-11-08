@@ -59,6 +59,11 @@ public:
 	bool bLMBDown;
 	bool bJumpKeyDown;
 
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Movement")
+	bool bMoveForward;
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Movement")
+	bool bMoveRight;
+
 	/*****************************/
 	// Player Stats   //
 	/*****************************/

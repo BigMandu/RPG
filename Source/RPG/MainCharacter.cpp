@@ -47,6 +47,8 @@ AMainCharacter::AMainCharacter()
 	bEKeyDown = false;
 	bShiftKeyDown = false;
 	bJumpKeyDown = false;
+	bMoveForward = false;
+	bMoveRight = false;
 
 	/*******************************/
 	//-- Player Movement  ---//
@@ -110,47 +112,52 @@ void AMainCharacter::Tick(float DeltaTime)
 	
 
 	/***Line Trace (캐릭터 밑에서부터 Mesh까지의 거리측정 ****/
-	FHitResult OutHit;
-	FVector StartPoint = GetCharacterMovement()->GetActorFeetLocation();
-	FVector EndPoint = FVector(StartPoint.X, StartPoint.Y, -500.f);
-
-	FCollisionQueryParams CollisionParams;
-	DrawDebugLine(GetWorld(), StartPoint, EndPoint, FColor::Red, false, 1.f, 0, 2);
-
-	bool isHit = GetWorld()->LineTraceSingleByChannel(OutHit, StartPoint, EndPoint, ECollisionChannel::ECC_Visibility, CollisionParams);
-
-	if (isHit)
 	{
-		if (OutHit.bBlockingHit)
+		FHitResult OutHit;
+		FVector StartPoint = GetCharacterMovement()->GetActorFeetLocation();
+		FVector EndPoint = FVector(StartPoint.X, StartPoint.Y, -800.f);
+		
+		FCollisionQueryParams CollisionParams;
+		DrawDebugLine(GetWorld(), StartPoint, EndPoint, FColor::Red, false, 1.f, 0, 2);
+
+		bool isHit = GetWorld()->LineTraceSingleByChannel(OutHit, StartPoint, EndPoint, ECollisionChannel::ECC_Visibility, CollisionParams);
+
+		if (isHit)
 		{
-			CurHeight = StartPoint.Z - OutHit.ImpactPoint.Z;
-			if (GEngine)
+			if (OutHit.bBlockingHit)
 			{
-				GEngine->AddOnScreenDebugMessage(-1, 1.f, FColor::Green, FString::Printf(TEXT("SPoint xyz : %.2f %.2f %.2f"), 
-					StartPoint.X, StartPoint.Y, StartPoint.Z));
-				GEngine->AddOnScreenDebugMessage(-1, 1.f, FColor::Green, FString::Printf(TEXT("Hit Imact Point : %s"), 
-					*OutHit.ImpactPoint.ToString()));
-				GEngine->AddOnScreenDebugMessage(-1, 1.f, FColor::Red, FString::Printf(TEXT("Calc Height : %f"),
-					CurHeight));
+				CurHeight = StartPoint.Z - OutHit.ImpactPoint.Z;
+				//if (GEngine) //뷰포트 출력
+				//{
+				//	GEngine->AddOnScreenDebugMessage(-1, 1.f, FColor::Green, FString::Printf(TEXT("Start Point : %s"),
+				//		*StartPoint.ToString()));
+				//	GEngine->AddOnScreenDebugMessage(-1, 1.f, FColor::Green, FString::Printf(TEXT("Hit Imact Point : %s"),
+				//		*OutHit.ImpactPoint.ToString()));
+				//	GEngine->AddOnScreenDebugMessage(-1, 1.f, FColor::Red, FString::Printf(TEXT("Calc Height : %.2f"),
+				//		CurHeight));
+				//}
 			}
 		}
 	}
-
 	//StaminaStatus 관리.
 	switch (StaminaStatus)
 	{
 	case EStaminaStatus::ESS_Normal:
-		if (bShiftKeyDown)
+		if (bShiftKeyDown && (bMoveForward || bMoveRight))
 		{
-			if (Stamina - DeltaStaminaDrain <= MinStamina)
+			//if (bMoveForward || bMoveRight)
 			{
-				SetStaminaStatus(EStaminaStatus::ESS_BelowMinimum);
+				if (Stamina - DeltaStaminaDrain <= MinStamina)
+				{
+					SetStaminaStatus(EStaminaStatus::ESS_BelowMinimum);
+				}
+				else
+				{
+					Stamina -= DeltaStaminaDrain;
+				}
+				SetMovementStatus(EMovementStatus::EMS_Sprint);
 			}
-			else
-			{
-				Stamina -= DeltaStaminaDrain;
-			}
-			SetMovementStatus(EMovementStatus::EMS_Sprint);
+			//else SetMovementStatus(EMovementStatus::EMS_Normal);
 		}
 		else //Shift Key가 눌리지 않으면
 		{
@@ -162,10 +169,10 @@ void AMainCharacter::Tick(float DeltaTime)
 		break;
 
 	case EStaminaStatus::ESS_BelowMinimum:
-		if (bShiftKeyDown)
+		if (bShiftKeyDown && (bMoveForward || bMoveRight))
 		{
-			if(Stamina - DeltaStaminaDrain <= 0.f)
-			{ 
+			if (Stamina - DeltaStaminaDrain <= 0.f)
+			{
 				Stamina = 0.f;
 				SetStaminaStatus(EStaminaStatus::ESS_Exhausted);
 				SetMovementStatus(EMovementStatus::EMS_Normal);
@@ -183,7 +190,7 @@ void AMainCharacter::Tick(float DeltaTime)
 		break;
 
 	case EStaminaStatus::ESS_Exhausted:
-		if (bShiftKeyDown)
+		if (bShiftKeyDown && (bMoveForward || bMoveRight))
 		{
 			Stamina = 0.f;
 			SetMovementStatus(EMovementStatus::EMS_Normal);
@@ -209,7 +216,7 @@ void AMainCharacter::Tick(float DeltaTime)
 		break;
 
 	case EStaminaStatus::ESS_Recovery:
-		if (bShiftKeyDown) //눌렸을때는 바로 넘겨준다.
+		if (bShiftKeyDown && (bMoveForward || bMoveRight)) //눌렸을때는 바로 넘겨준다.
 		{
 			if (Stamina >= MinStamina)
 			{
@@ -218,7 +225,7 @@ void AMainCharacter::Tick(float DeltaTime)
 			else
 			{
 				SetStaminaStatus(EStaminaStatus::ESS_BelowMinimum);
-			}
+			}	
 		}
 		else
 		{
@@ -322,6 +329,7 @@ void AMainCharacter::Jump()
 	if (!bAttacking)
 	{
 		Super::Jump();
+		ACharacter::Jump();
 		bJumpKeyDown = true;
 	}
 }
@@ -329,6 +337,7 @@ void AMainCharacter::Jump()
 void AMainCharacter::StopJumping()
 {
 	Super::StopJumping();
+	ACharacter::StopJumping();
 	bJumpKeyDown = false;
 }
 
@@ -338,8 +347,10 @@ void AMainCharacter::StopJumping()
 
 void AMainCharacter::MoveForward(float Value)
 {
+	bMoveForward = false;
 	if ((Controller != nullptr) && (Value != 0.f) && (!bAttacking))
 	{
+		bMoveForward = true;
 		//Cameraboom도 ControlRotation을 이용. ControlRotation을 이용해서 회전방향으로 진행.
 		const FRotator Rotation = Controller->GetControlRotation();
 		const FRotator YawRotation(0.f, Rotation.Yaw, 0.f);
@@ -353,8 +364,10 @@ void AMainCharacter::MoveForward(float Value)
 
 void AMainCharacter::MoveRight(float Value)
 {
+	bMoveRight = false;
 	if ((Controller != nullptr) && (Value != 0.f) && (!bAttacking))
 	{
+		bMoveRight = true;
 		const FRotator Rotation = Controller->GetControlRotation();
 		const FRotator YawRotation(0.f, Rotation.Yaw, 0.f);
 

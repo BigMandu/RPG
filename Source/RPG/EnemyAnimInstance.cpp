@@ -9,10 +9,10 @@ void UEnemyAnimInstance::NativeInitializeAnimation()
 	if (Owner == nullptr)
 	{
 		Owner = TryGetPawnOwner();
-	}
-	if (Owner)
-	{
-		Enemy = Cast<AEnemy>(Owner);
+		if (Owner)
+		{
+			Enemy = Cast<AEnemy>(Owner);
+		}
 	}
 }
 
@@ -22,11 +22,12 @@ void UEnemyAnimInstance::UpdateAnimation()
 	if (Owner == nullptr)
 	{
 		Owner = TryGetPawnOwner();
+		if (Owner)
+		{
+			Enemy = Cast<AEnemy>(Owner);
+		}
 	}
-	if (Owner)
-	{
-		Enemy = Cast<AEnemy>(Owner);
-	}
+	
 
 	if (Owner)
 	{
