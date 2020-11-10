@@ -98,6 +98,7 @@ void AEnemy::DetectActor(AActor* Actor, FAIStimulus Stimulus)
 
 				//아래는 디버깅.
 				UKismetSystemLibrary::DrawDebugSphere(this, FVector(DetectLo.X, DetectLo.Y,DetectLo.Z + 70.f), 50.f, 12, FLinearColor::Green, 3.f, 2.f);
+				UE_LOG(LogTemp, Warning, TEXT("AI : Detected!! / Location : %s"), *DetectLo.ToString());
 				if (GEngine)
 				{	
 					GEngine->AddOnScreenDebugMessage(-1, 3.f, FColor::Green, FString::Printf(TEXT("Detected Location : %s"), *DetectLo.ToString()));
@@ -107,14 +108,18 @@ void AEnemy::DetectActor(AActor* Actor, FAIStimulus Stimulus)
 			{			
 				//GetWorldTimerManager().SetTimer(LostTimer, this, &AEnemy::TargetLost, 5.0f);
 				//GetWorldTimerManager().SetTimer(LostTimer, 5.0f, false); //Timer를 5초로 설정
-				LostDelegate = FTimerDelegate::CreateUObject(this, &AEnemy::TargetLost, Actor);
-				if (GetWorldTimerManager().GetTimerRemaining(LostTimer) <= 0.f) //Timer가 끝나면
+				
+				LostDelegate = FTimerDelegate::CreateUObject(this, &AEnemy::TargetLost, Actor); //TimerDelegate를 이용해서 파라미터를 넘겨줌
+				GetWorldTimerManager().SetTimer(LostTimer, LostDelegate, 5.0f, false); //SetTimer로 함수를 호출
+
+				//if (GetWorldTimerManager().GetTimerRemaining(LostTimer) <= 0.f) //Timer가 끝나면
 				{
+					UE_LOG(LogTemp, Warning, TEXT("AI : Missing Player // Last Location : %s"), *DetectLo.ToString());
 					if (GEngine) //디버깅용
 					{
 						GEngine->AddOnScreenDebugMessage(-1, 3.f, FColor::Green, FString::Printf(TEXT("Last Location : %s"), *DetectLo.ToString()));
 					}
-					TargetLost(Main); //해당 함수 호출.
+					//TargetLost(Main); //해당 함수 호출.
 				}
 			}
 		}
@@ -125,9 +130,10 @@ void AEnemy::TargetLost(AActor* Actor)
 {
 	Actor = nullptr; //Main을 null로 바꿔줌
 	//아래는 디버깅
+	UE_LOG(LogTemp, Warning, TEXT("TargetLost() // AI : Target Lost!!"));
 	if (GEngine)
 	{
-		GEngine->AddOnScreenDebugMessage(-1, 1.f, FColor::Red, FString::Printf(TEXT("Target Lost!!")));
+		GEngine->AddOnScreenDebugMessage(-1, 1.f, FColor::Red, FString::Printf(TEXT("TargetLost() // Target Lost!!")));
 	}
 }
 
