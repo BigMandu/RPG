@@ -10,7 +10,7 @@ public class RPG : ModuleRules
 	    
         //UMG -> Unreal Motion Graphic UI Designer. 인터페이스를 사용하려면 필요함.
         //AIModule -> AI관련 함수들을 사용하려면 필요함.
-		PublicDependencyModuleNames.AddRange(new string[] { "Core", "CoreUObject", "Engine", "InputCore", "UMG", "AIModule"});
+		PublicDependencyModuleNames.AddRange(new string[] { "Core", "CoreUObject", "Engine", "InputCore", "UMG", "AIModule", "NavigationSystem"});
 
 		//PrivateDependencyModuleNames.AddRange(new string[] {  });
 

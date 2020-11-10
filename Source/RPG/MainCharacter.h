@@ -38,6 +38,12 @@ public:
 	// Sets default values for this character's properties
 	AMainCharacter();
 	
+	/////////////////AI TEST ////////////////
+	class UAIPerceptionStimuliSourceComponent* StimuliSourceComponent; //컴포넌트 생성,
+	TSubclassOf<class UAISense_Sight> SenseSight; //Sight Sense를 등록하기위해서 필요.
+	//TSubclassOf<class UAISense> SenseSource;
+
+
 	//////////// 카메라 ///////////////
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = Camera, meta = (AllowPrivateAccess = "true"))
 	class USpringArmComponent* CameraBoom;

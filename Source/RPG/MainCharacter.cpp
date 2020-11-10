@@ -9,7 +9,9 @@
 #include "Kismet/GameplayStatics.h"
 #include "Sound/SoundCue.h"
 #include "DrawDebugHelpers.h"
-
+#include "Perception/AIPerceptionStimuliSourceComponent.h"
+#include "Perception/AISense_Sight.h"
+#include "Perception/AISense.h"
 
 // Sets default values
 AMainCharacter::AMainCharacter()
@@ -17,7 +19,9 @@ AMainCharacter::AMainCharacter()
  	// Set this character to call Tick() every frame.  You can turn this off to improve performance if you don't need it.
 	PrimaryActorTick.bCanEverTick = true;
 
-	
+	////////////TEST AI/////////////
+	StimuliSourceComponent = CreateDefaultSubobject<UAIPerceptionStimuliSourceComponent>(TEXT("StimuliSourceComponent"));
+
 	/*******************************/
 	//------   카메라  관련   ------//
 	/*******************************/
@@ -101,6 +105,11 @@ void AMainCharacter::BeginPlay()
 {
 	Super::BeginPlay();
 	
+	////////////TEST AI/////////////
+	StimuliSourceComponent->bAutoRegister = true;
+	StimuliSourceComponent->RegisterForSense(SenseSight); //Sight Sense를 등록.
+	//StimuliSourceComponent->RegisterForSense(SenseSource);
+	StimuliSourceComponent->__PPO__RegisterAsSourceForSenses();
 }
 
 // Called every frame
@@ -118,7 +127,7 @@ void AMainCharacter::Tick(float DeltaTime)
 		FVector EndPoint = FVector(StartPoint.X, StartPoint.Y, -800.f);
 		
 		FCollisionQueryParams CollisionParams;
-		DrawDebugLine(GetWorld(), StartPoint, EndPoint, FColor::Red, false, 1.f, 0, 2);
+		DrawDebugLine(GetWorld(), StartPoint, EndPoint, FColor::Transparent, false, 1.f, 0, 2); //투명색으로 바꿔줌
 
 		bool isHit = GetWorld()->LineTraceSingleByChannel(OutHit, StartPoint, EndPoint, ECollisionChannel::ECC_Visibility, CollisionParams);
 
@@ -143,7 +152,8 @@ void AMainCharacter::Tick(float DeltaTime)
 	switch (StaminaStatus)
 	{
 	case EStaminaStatus::ESS_Normal:
-		if (bShiftKeyDown && (bMoveForward || bMoveRight))
+		//움직임+ShiftKey를 눌렀을때만 Sprint, Stamina가 drain되도록 구현함. 모든 Status에 적용중.
+		if (bShiftKeyDown && (bMoveForward || bMoveRight)) 
 		{
 			//if (bMoveForward || bMoveRight)
 			{
@@ -157,7 +167,6 @@ void AMainCharacter::Tick(float DeltaTime)
 				}
 				SetMovementStatus(EMovementStatus::EMS_Sprint);
 			}
-			//else SetMovementStatus(EMovementStatus::EMS_Normal);
 		}
 		else //Shift Key가 눌리지 않으면
 		{

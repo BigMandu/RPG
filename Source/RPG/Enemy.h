@@ -4,7 +4,9 @@
 
 #include "CoreMinimal.h"
 #include "GameFramework/Character.h"
+#include "Perception/AIPerceptionTypes.h"
 #include "Enemy.generated.h"
+
 
 UENUM(BlueprintType)
 enum class EEnemyMovementStatus : uint8
@@ -44,7 +46,18 @@ public:
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "AI")
 	USphereComponent* CombatSphere;
 
+	//////////////AI TEST////////////////////
+	class UNavigationSystemV1* NavSystem; //TEST목적, RandomLocation을 얻는 함수를 사용하기 위해.
+	void MoveToRandomLocation();
+
 	
+	class UAIPerceptionComponent* PerceptionComponent;
+	class UAISenseConfig_Sight* SenseSightConfig;
+
+	UFUNCTION()
+	void DetectActor(AActor* Actor, FAIStimulus Stimulus);
+	void TargetLost(AActor* Actor);
+
 
 protected:
 	// Called when the game starts or when spawned
