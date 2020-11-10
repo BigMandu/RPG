@@ -108,8 +108,6 @@ void AMainCharacter::BeginPlay()
 	////////////TEST AI/////////////
 	StimuliSourceComponent->bAutoRegister = true;
 	StimuliSourceComponent->RegisterForSense(SenseSight); //Sight Sense¸¦ µî·Ï.
-	//StimuliSourceComponent->RegisterForSense(SenseSource);
-	StimuliSourceComponent->__PPO__RegisterAsSourceForSenses();
 }
 
 // Called every frame

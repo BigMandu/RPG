@@ -8,7 +8,7 @@
 #include "NavigationSystem.h"
 #include "Kismet/KismetSystemLibrary.h"
 #include "Perception/AIPerceptionComponent.h"
-#include "Perception/AISenseConfig.h"
+//#include "Perception/AISenseConfig.h"
 #include "Perception/AISenseConfig_Sight.h"
 #include "Perception/AIPerceptionTypes.h"
 
@@ -56,7 +56,7 @@ void AEnemy::BeginPlay()
 	//Perception Sight추가.
 	SenseSightConfig->SightRadius = 1000.f;
 	SenseSightConfig->LoseSightRadius = 1500.f;
-	SenseSightConfig->PeripheralVisionAngleDegrees = 90.f; //AI의 시야각 설정
+	SenseSightConfig->PeripheralVisionAngleDegrees = 50.f; //AI의 시야각 설정
 	SenseSightConfig->DetectionByAffiliation.bDetectNeutrals = true;
 	SenseSightConfig->SetMaxAge(30.f);
 	PerceptionComponent->ConfigureSense(*SenseSightConfig); //Sight sense를 넣어준다.	
@@ -73,18 +73,20 @@ void AEnemy::MoveToRandomLocation() //TEST목적
 		AIController->MoveToLocation(LinearRandLocation);
 		
 		//디버깅
-		UKismetSystemLibrary::DrawDebugSphere(this, LinearRandLocation, 25.f, 6, FLinearColor::Blue, 3.f, 2.f);
-		if (GEngine)
 		{
-			GEngine->AddOnScreenDebugMessage(-1, 1.f, FColor::Red, FString::Printf(TEXT("Next Location : %s"), *LinearRandLocation.ToString()));
+			UKismetSystemLibrary::DrawDebugSphere(this, LinearRandLocation, 25.f, 6, FLinearColor::Blue, 3.f, 2.f);
+			if (GEngine)
+			{
+				GEngine->AddOnScreenDebugMessage(-1, 1.f, FColor::Red, FString::Printf(TEXT("Next Location : %s"), *LinearRandLocation.ToString()));
+			}
 		}
 	}
 }
 
 void AEnemy::DetectActor(AActor* Actor, FAIStimulus Stimulus)
 {
-	FTimerHandle LostTimer;
-	FTimerDelegate LostDelegate;
+	//FTimerHandle LostTimer;
+	//FTimerDelegate LostDelegate;
 	FVector DetectLo = Stimulus.StimulusLocation; //감지된 위치를 저장.
 
 	if (Actor)
@@ -95,31 +97,28 @@ void AEnemy::DetectActor(AActor* Actor, FAIStimulus Stimulus)
 			if (Stimulus.WasSuccessfullySensed()) //성공적으로 감지를 했으면
 			{
 				GetWorldTimerManager().ClearTimer(LostTimer); //Timer초기화.
-
 				//아래는 디버깅.
-				UKismetSystemLibrary::DrawDebugSphere(this, FVector(DetectLo.X, DetectLo.Y,DetectLo.Z + 70.f), 50.f, 12, FLinearColor::Green, 3.f, 2.f);
-				UE_LOG(LogTemp, Warning, TEXT("AI : Detected!! / Location : %s"), *DetectLo.ToString());
-				if (GEngine)
-				{	
-					GEngine->AddOnScreenDebugMessage(-1, 3.f, FColor::Green, FString::Printf(TEXT("Detected Location : %s"), *DetectLo.ToString()));
+				{
+					UKismetSystemLibrary::DrawDebugSphere(this, FVector(DetectLo.X, DetectLo.Y, DetectLo.Z + 70.f), 50.f, 12, FLinearColor::Green, 3.f, 2.f);
+					UE_LOG(LogTemp, Warning, TEXT("AI : Detected!! / Location : %s"), *DetectLo.ToString());
+					if (GEngine)
+					{
+						GEngine->AddOnScreenDebugMessage(-1, 3.f, FColor::Green, FString::Printf(TEXT("Detected Location : %s"), *DetectLo.ToString()));
+					}
 				}
 			}
 			else //감지를 못한경우
 			{			
-				//GetWorldTimerManager().SetTimer(LostTimer, this, &AEnemy::TargetLost, 5.0f);
-				//GetWorldTimerManager().SetTimer(LostTimer, 5.0f, false); //Timer를 5초로 설정
-				
 				LostDelegate = FTimerDelegate::CreateUObject(this, &AEnemy::TargetLost, Actor); //TimerDelegate를 이용해서 파라미터를 넘겨줌
 				GetWorldTimerManager().SetTimer(LostTimer, LostDelegate, 5.0f, false); //SetTimer로 함수를 호출
-
-				//if (GetWorldTimerManager().GetTimerRemaining(LostTimer) <= 0.f) //Timer가 끝나면
+				
+				//디버깅용
 				{
 					UE_LOG(LogTemp, Warning, TEXT("AI : Missing Player // Last Location : %s"), *DetectLo.ToString());
-					if (GEngine) //디버깅용
+					if (GEngine)
 					{
 						GEngine->AddOnScreenDebugMessage(-1, 3.f, FColor::Green, FString::Printf(TEXT("Last Location : %s"), *DetectLo.ToString()));
 					}
-					//TargetLost(Main); //해당 함수 호출.
 				}
 			}
 		}
@@ -130,10 +129,12 @@ void AEnemy::TargetLost(AActor* Actor)
 {
 	Actor = nullptr; //Main을 null로 바꿔줌
 	//아래는 디버깅
-	UE_LOG(LogTemp, Warning, TEXT("TargetLost() // AI : Target Lost!!"));
-	if (GEngine)
 	{
-		GEngine->AddOnScreenDebugMessage(-1, 1.f, FColor::Red, FString::Printf(TEXT("TargetLost() // Target Lost!!")));
+		UE_LOG(LogTemp, Warning, TEXT("TargetLost() // AI : Target Lost!!"));
+		if (GEngine)
+		{
+			GEngine->AddOnScreenDebugMessage(-1, 1.f, FColor::Red, FString::Printf(TEXT("TargetLost() // Target Lost!!")));
+		}
 	}
 }
 

@@ -51,6 +51,8 @@ public:
 	void MoveToRandomLocation();
 
 	
+	FTimerHandle LostTimer;
+	FTimerDelegate LostDelegate;
 	class UAIPerceptionComponent* PerceptionComponent;
 	class UAISenseConfig_Sight* SenseSightConfig;
 
