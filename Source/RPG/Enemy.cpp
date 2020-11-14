@@ -2,16 +2,17 @@
 
 
 #include "Enemy.h"
-#include "AIController.h"
+#include "EnemyAIController.h"
 #include "MainCharacter.h"
 #include "Components/SphereComponent.h"
-#include "NavigationSystem.h"
 #include "Kismet/KismetSystemLibrary.h"
+#include "NavigationSystem.h"
+/*
 #include "Perception/AIPerceptionComponent.h"
-//#include "Perception/AISenseConfig.h"
+#include "Perception/AISenseConfig.h"
 #include "Perception/AISenseConfig_Sight.h"
 #include "Perception/AIPerceptionTypes.h"
-
+*/
 // Sets default values
 AEnemy::AEnemy()
 {
@@ -26,10 +27,21 @@ AEnemy::AEnemy()
 	CombatSphere->SetupAttachment(GetRootComponent());
 	CombatSphere->InitSphereRadius(80.f);
 
+
+
+	//AIController를 지정해준다.
+	AIControllerClass = AEnemyAIController::StaticClass();
+	
+	//Pawn이 AI컨트롤러를 생성하고, 소유하는 시기를 결정한다.여기선 World에 배치되거나 스폰될때.
+	AutoPossessAI = EAutoPossessAI::PlacedInWorldOrSpawned; 
+	
+
+	/*
 	//////////AI TEST/////////
 	PerceptionComponent = CreateDefaultSubobject<UAIPerceptionComponent>(TEXT("PerceptionComp"));
 	SenseSightConfig = CreateDefaultSubobject<UAISenseConfig_Sight>(TEXT("Sight"));
 	PerceptionComponent->ConfigureSense(*SenseSightConfig);
+	*/
 }
 
 // Called when the game starts or when spawned
@@ -38,7 +50,7 @@ void AEnemy::BeginPlay()
 	Super::BeginPlay();
 	
 	//AI Controller로 캐스트,
-	AIController = Cast<AAIController>(GetController());
+	AIController = Cast<AEnemyAIController>(GetController());
 
 	AgroSphere->OnComponentBeginOverlap.AddDynamic(this, &AEnemy::AgroSphereOverlapBegin);
 	AgroSphere->OnComponentEndOverlap.AddDynamic(this, &AEnemy::AgroSphereOverlapEnd);
@@ -46,6 +58,7 @@ void AEnemy::BeginPlay()
 	CombatSphere->OnComponentEndOverlap.AddDynamic(this, &AEnemy::CombatSphereOverlapEnd);
 
 
+	/*
 	
 	////////////AI TEST///////////////
 	NavSystem = FNavigationSystem::GetCurrent<UNavigationSystemV1>(GetWorld());
@@ -61,8 +74,10 @@ void AEnemy::BeginPlay()
 	SenseSightConfig->SetMaxAge(30.f);
 	PerceptionComponent->ConfigureSense(*SenseSightConfig); //Sight sense를 넣어준다.	
 	PerceptionComponent->OnTargetPerceptionUpdated.AddDynamic(this, &AEnemy::DetectActor); //OntargetPerceptionUpdated이벤트를 정의함수에 bind시킨다.
+	*/
 }
 
+/*
 void AEnemy::MoveToRandomLocation() //TEST목적
 {
 	FVector RandomLocation = FVector(NavSystem->GetRandomReachablePointInRadius(this, GetActorLocation(), 2500.f));
@@ -82,7 +97,7 @@ void AEnemy::MoveToRandomLocation() //TEST목적
 		}
 	}
 }
-
+/*
 void AEnemy::DetectActor(AActor* Actor, FAIStimulus Stimulus)
 {
 	//FTimerHandle LostTimer;
@@ -137,7 +152,7 @@ void AEnemy::TargetLost(AActor* Actor)
 		}
 	}
 }
-
+*/
 
 // Called every frame
 void AEnemy::Tick(float DeltaTime)
@@ -156,6 +171,7 @@ void AEnemy::SetupPlayerInputComponent(UInputComponent* PlayerInputComponent)
 	//////////////////////////////
 	/****      Enemy AI      ****/
 	//////////////////////////////
+/*
 void AEnemy::Chase(class AMainCharacter* Target)
 {
 	SetEnemyMovementStatus(EEnemyMovementStatus::EMS_Chase);
@@ -172,7 +188,7 @@ void AEnemy::Chase(class AMainCharacter* Target)
 		AIController->MoveTo(MoveRequest, &NavPath);
 
 	}
-}
+}*/
 
 void AEnemy::AgroSphereOverlapBegin(UPrimitiveComponent* OverlappedComponent, AActor* OtherActor, UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult)
 {
@@ -180,9 +196,9 @@ void AEnemy::AgroSphereOverlapBegin(UPrimitiveComponent* OverlappedComponent, AA
 	if (OtherActor)
 	{
 		AMainCharacter* MainChar = Cast<AMainCharacter>(OtherActor);
-		if (MainChar)
+		if (MainChar && AIController)
 		{
-			Chase(MainChar);
+			AIController->Chase(this, MainChar);
 		}
 	}
 }
@@ -210,9 +226,9 @@ void AEnemy::CombatSphereOverlapEnd(UPrimitiveComponent* OverlappedComponent, AA
 	if (OtherActor)
 	{
 		AMainCharacter* MainChar = Cast<AMainCharacter>(OtherActor);
-		if (MainChar)
+		if (MainChar && AIController)
 		{
-			Chase(MainChar);
+			AIController->Chase(this, MainChar);
 		}
 	}
 }

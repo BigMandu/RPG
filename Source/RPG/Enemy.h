@@ -39,13 +39,14 @@ public:
 	/****      Enemy AI      ****/
 	//////////////////////////////
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "AI")
-	class AAIController* AIController; //Chase함수를 위해서
+	class AEnemyAIController* AIController; //AI Controller클래스
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "AI")
 	class USphereComponent* AgroSphere;
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "AI")
 	USphereComponent* CombatSphere;
 
+	/*
 	//////////////AI TEST////////////////////
 	class UNavigationSystemV1* NavSystem; //TEST목적, RandomLocation을 얻는 함수를 사용하기 위해.
 	void MoveToRandomLocation();
@@ -59,7 +60,7 @@ public:
 	UFUNCTION()
 	void DetectActor(AActor* Actor, FAIStimulus Stimulus);
 	void TargetLost(AActor* Actor);
-
+	*/
 
 protected:
 	// Called when the game starts or when spawned
@@ -75,8 +76,8 @@ public:
 	//////////////////////////////
 	/****      Enemy AI      ****/
 	//////////////////////////////
-	UFUNCTION()
-	void Chase(class AMainCharacter* Target);
+	//UFUNCTION()
+	//void Chase(class AMainCharacter* Target);
 
 	UFUNCTION()
 	virtual void AgroSphereOverlapBegin(UPrimitiveComponent* OverlappedComponent, AActor* OtherActor, UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult);
