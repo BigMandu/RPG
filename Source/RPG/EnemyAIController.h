@@ -44,12 +44,17 @@ public:
 	//////////// Behavior Tree //////////////
 	/***************************************/
 	UPROPERTY()
-	class UBehaviorTree* BTAsset;
+	class UBehaviorTreeComponent* BTComp;
 	UPROPERTY()
-	class UBlackboardData* BBAsset;
+	class UBlackboardComponent* BBComp;
 	
 
-
+	/***** Blackboard Key *****/
+	const FName OriginPosKey = FName(TEXT("OriginPos"));
+	const FName PatrolPosKey = FName(TEXT("PatrolPos"));
+	const FName TargetKey = FName("Target");
+	const FName HasDetectedPlayerKey = FName("HasDetectedPlayer");
+	
 
 protected:
 		// Called when the game starts or when spawned
@@ -60,7 +65,8 @@ public:
 	virtual void Tick(float DeltaTime) override;
 
 
-	void MoveToRandomLocation();
+	//void MoveToRandomLocation();
+
 	/***************************************/
 	//////////// AI Perception //////////////
 	/***************************************/
@@ -75,6 +81,11 @@ public:
 	/***************************************/
 	//////////// Behavior Tree //////////////
 	/***************************************/
-	virtual void OnPossess(APawn* InPawn) override;
+	virtual void OnPossess(APawn* InPawn) override; //Pawn에 Controller를 붙여주는 함수.
+
+
+	//Blackboard Key update function.
+	void UpdateTargetKey(AActor* Target);
+	void UpdateHasDetectedPlayer(bool HasDetectedPlayer);
 
 };

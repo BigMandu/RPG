@@ -46,6 +46,9 @@ public:
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "AI")
 	USphereComponent* CombatSphere;
 
+	UPROPERTY(EditAnywhere, Category = "Behavior")
+	class UBehaviorTree* EnemyBehavior;
+
 	/*
 	//////////////AI TEST////////////////////
 	class UNavigationSystemV1* NavSystem; //TEST목적, RandomLocation을 얻는 함수를 사용하기 위해.

@@ -125,7 +125,7 @@ void AMainCharacter::Tick(float DeltaTime)
 		FVector EndPoint = FVector(StartPoint.X, StartPoint.Y, -800.f);
 		
 		FCollisionQueryParams CollisionParams;
-		DrawDebugLine(GetWorld(), StartPoint, EndPoint, FColor::Transparent, false, 1.f, 0, 2); //투명색으로 바꿔줌
+		//DrawDebugLine(GetWorld(), StartPoint, EndPoint, FColor::Red, false, 1.f, 0, 2); //Line Trace 시각화 Debug
 
 		bool isHit = GetWorld()->LineTraceSingleByChannel(OutHit, StartPoint, EndPoint, ECollisionChannel::ECC_Visibility, CollisionParams);
 

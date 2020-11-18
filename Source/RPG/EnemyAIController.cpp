@@ -10,12 +10,16 @@
 #include "Perception/AISenseConfig_Sight.h"
 #include "Perception/AIPerceptionTypes.h"
 #include "BehaviorTree/BehaviorTree.h"
+#include "BehaviorTree/BehaviorTreeComponent.h"
+#include "BehaviorTree/BlackboardComponent.h"
 #include "BehaviorTree/BlackboardData.h"
+
 
 AEnemyAIController::AEnemyAIController()
 {
 	PrimaryActorTick.bCanEverTick = true;
 
+	//////////////////Perception //////////////////
 	PerceptionComponent = CreateDefaultSubobject<UAIPerceptionComponent>(TEXT("PerceptionComp"));
 	SenseSightConfig = CreateDefaultSubobject<UAISenseConfig_Sight>(TEXT("Sight"));
 	PerceptionComponent->ConfigureSense(*SenseSightConfig);
@@ -31,26 +35,23 @@ AEnemyAIController::AEnemyAIController()
 
 	//////////////////Behavior Tree//////////////////
 
-	static ConstructorHelpers::FObjectFinder<UBlackboardData> BBObject(TEXT("/Game/Blueprints/AI/BB_EnemyAI.BB_EnemyAI"));
-	if (BBObject.Succeeded())
-	{
-		BBAsset = BBObject.Object; //Blackboard를 가져옴
-	}
-	static ConstructorHelpers::FObjectFinder<UBehaviorTree> BTObject(TEXT("/Game/Blueprints/AI/BT_EnemyAI.BT_EnemyAI"));
-	if (BTObject.Succeeded())
-	{
-		BTAsset = BTObject.Object; //behavior tree를 가져옴.
-	}
+	BTComp = CreateDefaultSubobject<UBehaviorTreeComponent>(TEXT("BTComp"));
+	BBComp = CreateDefaultSubobject<UBlackboardComponent>(TEXT("BBComp"));
+	
 }
 
 void AEnemyAIController::BeginPlay() //레벨이 시작될때 호출됨.
 {
 	Super::BeginPlay();
 	
+	//MoveRandom test, timerhandle, navsys
+	/*
 	FTimerHandle RandomTimerHandle;
 	GetWorldTimerManager().SetTimer(RandomTimerHandle, this, &AEnemyAIController::MoveToRandomLocation, 3.0f, true);
-
+	
 	//NavSys = FNavigationSystem::GetCurrent<UNavigationSystemV1>(GetWorld());
+	*/
+
 	PerceptionComponent->OnTargetPerceptionUpdated.AddDynamic(this, &AEnemyAIController::DetectActor);
 }
 
@@ -72,10 +73,15 @@ void AEnemyAIController::DetectActor(AActor* Actor, FAIStimulus Stimulus)
 			if (Stimulus.WasSuccessfullySensed()) //성공적으로 감지를 했으면
 			{
 				GetWorldTimerManager().ClearTimer(LostTargetTimer); //Timer초기화.
+
+				//감지했을때 Target Key와 HasDetected를 Update해줌.
+				UpdateTargetKey(Actor);
+				UpdateHasDetectedPlayer(true);
+
 				//아래는 디버깅.
 				{
 					UKismetSystemLibrary::DrawDebugSphere(this, FVector(DetectLo.X, DetectLo.Y, DetectLo.Z + 70.f), 50.f, 12, FLinearColor::Green, 3.f, 2.f);
-					UE_LOG(LogTemp, Warning, TEXT("AI : Detected!! / Location : %s"), *DetectLo.ToString());
+					UE_LOG(LogTemp, Warning, TEXT("AI : Detected!! / Target : %s, Location : %s" ), *(Actor->GetName()), *DetectLo.ToString());
 					if (GEngine)
 					{
 						GEngine->AddOnScreenDebugMessage(-1, 3.f, FColor::Green, FString::Printf(TEXT("Detected Location : %s"), *DetectLo.ToString()));
@@ -87,8 +93,11 @@ void AEnemyAIController::DetectActor(AActor* Actor, FAIStimulus Stimulus)
 				LostTargetDelegate = FTimerDelegate::CreateUObject(this, &AEnemyAIController::TargetLost, Actor); //TimerDelegate를 이용해서 파라미터를 넘겨줌
 				GetWorldTimerManager().SetTimer(LostTargetTimer, LostTargetDelegate, 5.0f, false); //SetTimer로 함수를 호출
 
-				//디버깅용
+				UpdateHasDetectedPlayer(false);
+				
+				//디버깅
 				{
+					UKismetSystemLibrary::DrawDebugSphere(this, FVector(DetectLo.X, DetectLo.Y, DetectLo.Z + 70.f), 50.f, 12, FLinearColor::Red, 3.f, 2.f);
 					UE_LOG(LogTemp, Warning, TEXT("AI : Missing Player // Last Location : %s"), *DetectLo.ToString());
 					if (GEngine)
 					{
@@ -103,6 +112,10 @@ void AEnemyAIController::DetectActor(AActor* Actor, FAIStimulus Stimulus)
 void AEnemyAIController::TargetLost(AActor* Actor)
 {
 	Actor = nullptr; //Main을 null로 바꿔줌
+	
+	UpdateTargetKey(nullptr);
+	UpdateHasDetectedPlayer(false);
+
 	//아래는 디버깅
 	{
 		UE_LOG(LogTemp, Warning, TEXT("TargetLost() // AI : Target Lost!!"));
@@ -113,6 +126,7 @@ void AEnemyAIController::TargetLost(AActor* Actor)
 	}
 }
 
+/*
 void AEnemyAIController::MoveToRandomLocation() //TEST목적
 {
 	//AEnemy* Enemy = GetWorld()->SpawnActor<AEnemy>(); //Enemy를 계속 SapwnActor로 하기때문에 NULL이 생길때도 있다.
@@ -136,6 +150,7 @@ void AEnemyAIController::MoveToRandomLocation() //TEST목적
 		}
 	}
 }
+*/
 
 void AEnemyAIController::Chase(AActor* Chaser, AMainCharacter* Target)
 {
@@ -152,7 +167,6 @@ void AEnemyAIController::Chase(AActor* Chaser, AMainCharacter* Target)
 		FNavPathSharedPtr NavPath;
 
 		MoveTo(MoveRequest, &NavPath);
-
 	}
 }
 
@@ -163,11 +177,50 @@ void AEnemyAIController::Chase(AActor* Chaser, AMainCharacter* Target)
 void AEnemyAIController::OnPossess(APawn * InPawn)
 {
 	Super::OnPossess(InPawn);
-	if (UseBlackboard(BBAsset, Blackboard))
+
+	AEnemy* Enemy = Cast<AEnemy>(InPawn);
+	if (Enemy && Enemy->EnemyBehavior)
 	{
-		if (!RunBehaviorTree(BTAsset))
+		BBComp->InitializeBlackboard(*(Enemy->EnemyBehavior->BlackboardAsset)); //Blackboard초기화.
+		BBComp->SetValueAsVector(OriginPosKey, Enemy->GetActorLocation());
+
+
+
+		BTComp->StartTree(*(Enemy->EnemyBehavior)); //제일마지막에 StartTree를 해야함.
+		
+	}
+	else
+	{
+		UE_LOG(LogTemp, Warning, TEXT("Can't initialize Blackboard"));
+	}
+
+	/*
+	if (UseBlackboard(BBAsset, Blackboard)) //blackboard Asset과 Component가 성공적으로 연결된다면 true return.
+	{
+		if (!RunBehaviorTree(BTAsset)) //BehaviorTree를 실행하지 못하면,
 		{
 			UE_LOG(LogTemp, Warning, TEXT("behavior Tree를 실행할 수 없음"));
 		}
+		Blackboard->SetValueAsVector(OriginPosKey, InPawn->GetActorLocation()); //OriginPosKey에 현재 Enemy의 위치값을 받아옴.
+	}*/
+
+
+}
+
+
+/************    Blackboard Key update function   ***********/
+
+//Target Object update 함수.
+void AEnemyAIController::UpdateTargetKey(AActor* Target)
+{
+	AMainCharacter* MainChar = Cast<AMainCharacter>(Target);
+	if (MainChar || Target == nullptr)
+	{
+		BBComp->SetValueAsObject(TargetKey, Target == nullptr ? Target : MainChar);
 	}
+}
+
+void AEnemyAIController::UpdateHasDetectedPlayer(bool HasDetectedPlayer)
+{
+	BBComp->SetValueAsBool(HasDetectedPlayerKey, HasDetectedPlayer);
 }

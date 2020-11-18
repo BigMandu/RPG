@@ -198,7 +198,7 @@ void AEnemy::AgroSphereOverlapBegin(UPrimitiveComponent* OverlappedComponent, AA
 		AMainCharacter* MainChar = Cast<AMainCharacter>(OtherActor);
 		if (MainChar && AIController)
 		{
-			AIController->Chase(this, MainChar);
+			//AIController->Chase(this, MainChar);
 		}
 	}
 }
@@ -228,7 +228,7 @@ void AEnemy::CombatSphereOverlapEnd(UPrimitiveComponent* OverlappedComponent, AA
 		AMainCharacter* MainChar = Cast<AMainCharacter>(OtherActor);
 		if (MainChar && AIController)
 		{
-			AIController->Chase(this, MainChar);
+			//AIController->Chase(this, MainChar);
 		}
 	}
 }
