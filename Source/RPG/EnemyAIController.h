@@ -17,6 +17,11 @@ class RPG_API AEnemyAIController : public AAIController
 public:
 	AEnemyAIController();
 
+	/*
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "AI")
+	class UNavigationSystemV1* NavSys;
+	*/
+
 	/***************************************/
 	//////////// AI Perception //////////////
 	/***************************************/
@@ -28,8 +33,6 @@ public:
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "AI")
 	class UAISenseConfig_Sight* SenseSightConfig;
-	//UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "AI")
-	//class UNavigationSystemV1* NavSystem; //TEST목적, RandomLocation을 얻는 함수를 사용하기 위해.
 	
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "AI | Perception")
 	float SightRadius;
@@ -54,6 +57,8 @@ public:
 	const FName PatrolPosKey = FName(TEXT("PatrolPos"));
 	const FName TargetKey = FName("Target");
 	const FName HasDetectedPlayerKey = FName("HasDetectedPlayer");
+	const FName LastPlayerLocationKey = FName("LastPlayerLocationKey");
+	const FName LastPlayerRotationKey = FName("LastPlayerRotationKey");
 	
 
 protected:
@@ -67,6 +72,13 @@ public:
 
 	//void MoveToRandomLocation();
 
+
+	/******** ACT Function********/
+	UFUNCTION()
+	void Chase(class AActor* Chaser, class AMainCharacter* Target);
+
+	void SearchAndMove(FVector LastLocation, FVector TargetLocation);
+
 	/***************************************/
 	//////////// AI Perception //////////////
 	/***************************************/
@@ -75,16 +87,13 @@ public:
 
 	void TargetLost(AActor* Actor);
 
-	UFUNCTION()
-	void Chase(class AActor* Chaser, class AMainCharacter* Target);
-
 	/***************************************/
 	//////////// Behavior Tree //////////////
 	/***************************************/
 	virtual void OnPossess(APawn* InPawn) override; //Pawn에 Controller를 붙여주는 함수.
 
 
-	//Blackboard Key update function.
+	////  Blackboard Key update function.  
 	void UpdateTargetKey(AActor* Target);
 	void UpdateHasDetectedPlayer(bool HasDetectedPlayer);
 

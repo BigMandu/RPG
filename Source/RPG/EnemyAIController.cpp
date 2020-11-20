@@ -27,6 +27,8 @@ AEnemyAIController::AEnemyAIController()
 	LoseSightradius = 1500.f;
 	VisionAngleDegrees = 50.f;
 	MaxAge = 20.f;
+
+
 	SenseSightConfig->SightRadius = SightRadius;
 	SenseSightConfig->LoseSightRadius = LoseSightradius;
 	SenseSightConfig->PeripheralVisionAngleDegrees = VisionAngleDegrees; //AI의 시야각 설정
@@ -37,6 +39,8 @@ AEnemyAIController::AEnemyAIController()
 
 	BTComp = CreateDefaultSubobject<UBehaviorTreeComponent>(TEXT("BTComp"));
 	BBComp = CreateDefaultSubobject<UBlackboardComponent>(TEXT("BBComp"));
+
+	BBComp->SetValueAsVector(LastPlayerLocationKey, FVector::ZeroVector); //BehaviorTree에 Invalid라고 나와서 그냥 초기화를 해줬다. 
 	
 }
 
@@ -44,13 +48,12 @@ void AEnemyAIController::BeginPlay() //레벨이 시작될때 호출됨.
 {
 	Super::BeginPlay();
 	
-	//MoveRandom test, timerhandle, navsys
+	//MoveRandom test, timerhandle
 	/*
 	FTimerHandle RandomTimerHandle;
 	GetWorldTimerManager().SetTimer(RandomTimerHandle, this, &AEnemyAIController::MoveToRandomLocation, 3.0f, true);
-	
-	//NavSys = FNavigationSystem::GetCurrent<UNavigationSystemV1>(GetWorld());
 	*/
+	//NavSys = FNavigationSystem::GetCurrent<UNavigationSystemV1>(GetWorld());
 
 	PerceptionComponent->OnTargetPerceptionUpdated.AddDynamic(this, &AEnemyAIController::DetectActor);
 }
@@ -64,6 +67,7 @@ void AEnemyAIController::Tick(float DeltaTime)
 void AEnemyAIController::DetectActor(AActor* Actor, FAIStimulus Stimulus)
 {
 	FVector DetectLo = Stimulus.StimulusLocation; //감지된 위치를 저장.
+	float DetectedPlayerLostTime = 7.0f; //Target을 초기화 하는 시간.
 
 	if (Actor)
 	{
@@ -91,8 +95,11 @@ void AEnemyAIController::DetectActor(AActor* Actor, FAIStimulus Stimulus)
 			else //감지를 못한경우
 			{
 				LostTargetDelegate = FTimerDelegate::CreateUObject(this, &AEnemyAIController::TargetLost, Actor); //TimerDelegate를 이용해서 파라미터를 넘겨줌
-				GetWorldTimerManager().SetTimer(LostTargetTimer, LostTargetDelegate, 5.0f, false); //SetTimer로 함수를 호출
-
+				GetWorldTimerManager().SetTimer(LostTargetTimer, LostTargetDelegate, DetectedPlayerLostTime, false); //SetTimer로 함수를 호출
+				
+				
+				BBComp->SetValueAsRotator(LastPlayerRotationKey, Main->GetActorRotation());// Player의 회전값도 넣어준다.
+				BBComp->SetValueAsVector(LastPlayerLocationKey, DetectLo); //마지막 감지 위치를 LastPlyaerLocationKey에 넘겨준다.
 				UpdateHasDetectedPlayer(false);
 				
 				//디버깅
@@ -170,6 +177,52 @@ void AEnemyAIController::Chase(AActor* Chaser, AMainCharacter* Target)
 	}
 }
 
+//망한 함수
+/*
+void AEnemyAIController::SearchAndMove(FVector LastLocation, FVector TargetLocation)
+{
+	FVector LocationDist = FVector(FVector::Dist(TargetLocation, LastLocation));
+	FTimerHandle MoveTimer;
+	//float Ratio = 1.0;
+	AEnemy* Enemy = Cast<AEnemy>(AEnemyAIController::GetCharacter());
+	EPathFollowingRequestResult::Type MoveResult;
+
+	if (Enemy == nullptr) return;
+
+	UE_LOG(LogTemp, Warning, TEXT(" Search Player "));
+	for (int32 lo = 0; lo < 3; lo++) //우선 3번 반복
+	{
+		FVector CurLo = Enemy->GetActorLocation();
+
+		float Rand = FMath::RandRange(LocationDist.Size() / 3, LocationDist.Size() / 1.5);
+		FVector SearchLocation = FVector(CurLo.X + Rand, CurLo.Y + Rand, CurLo.Z);
+
+		//디버깅용
+		{
+			UE_LOG(LogTemp, Warning, TEXT("----------- Loop : %d -----------"), lo);
+			//UE_LOG(LogTemp, Warning, TEXT("LastLo : %s, TargetLo : %s"), *LastLocation.ToString(), *TargetLocation.ToString());
+			UE_LOG(LogTemp, Warning, TEXT("Current Enemy Location : %s"), *CurLo.ToString());
+			UE_LOG(LogTemp, Warning, TEXT("Vector dist : %s, float Rand value : %f"), *LocationDist.ToString(), Rand);
+			UE_LOG(LogTemp, Warning, TEXT("Final Search Location : %s"), *SearchLocation.ToString());
+		}
+
+		MoveResult = MoveToLocation(SearchLocation);
+		GetWorldTimerManager().SetTimer(MoveTimer, 1.0, true);
+		
+		UE_LOG(LogTemp, Warning, TEXT("MoveTimer is Set And Wait Move request."));
+
+		while (!(GetWorldTimerManager().IsTimerPaused(MoveTimer)))
+		{
+			if (MoveResult == EPathFollowingRequestResult::AlreadyAtGoal || MoveResult == EPathFollowingRequestResult::Failed)
+			{
+				UE_LOG(LogTemp, Warning, TEXT("Move Request is success And Pause Timer"));
+				GetWorldTimerManager().PauseTimer(MoveTimer);
+			}
+		}
+		UE_LOG(LogTemp, Warning, TEXT("Finally Timer is Clear"));
+		GetWorldTimerManager().ClearTimer(MoveTimer);
+	}
+}*/
 
 /***************************************/
 //////////// Behavior Tree //////////////
@@ -182,7 +235,7 @@ void AEnemyAIController::OnPossess(APawn * InPawn)
 	if (Enemy && Enemy->EnemyBehavior)
 	{
 		BBComp->InitializeBlackboard(*(Enemy->EnemyBehavior->BlackboardAsset)); //Blackboard초기화.
-		BBComp->SetValueAsVector(OriginPosKey, Enemy->GetActorLocation());
+		BBComp->SetValueAsVector(OriginPosKey, Enemy->GetActorLocation()); //월드에 스폰한 위치를 저장
 
 
 

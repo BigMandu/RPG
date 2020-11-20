@@ -3,6 +3,7 @@
 
 #include "Enemy.h"
 #include "EnemyAIController.h"
+#include "GameFramework/CharacterMovementComponent.h"
 #include "MainCharacter.h"
 #include "Components/SphereComponent.h"
 #include "Kismet/KismetSystemLibrary.h"
@@ -28,6 +29,10 @@ AEnemy::AEnemy()
 	CombatSphere->InitSphereRadius(80.f);
 
 
+	//움직임
+	GetCharacterMovement()->bOrientRotationToMovement = true;
+	GetCharacterMovement()->RotationRate = FRotator(0.f, 500.f, 0.f); //위의 회전속도값.
+	bUseControllerRotationYaw = false;
 
 	//AIController를 지정해준다.
 	AIControllerClass = AEnemyAIController::StaticClass();

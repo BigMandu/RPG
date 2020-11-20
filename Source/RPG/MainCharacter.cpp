@@ -117,6 +117,11 @@ void AMainCharacter::Tick(float DeltaTime)
 	float DeltaStaminaDrain = StaminaDrainRate * DeltaTime;
 	float DeltaStaminaRecovery = StaminaRecoveryRate * DeltaTime;
 	
+	//플레이어 위치 TEST용.
+	/*if (GEngine)
+	{
+		GEngine->AddOnScreenDebugMessage(-1, 1.f, FColor::Blue, FString::Printf(TEXT("Cur Char Lo : %s"),*GetActorLocation().ToString()));
+	}*/
 
 	/***Line Trace (캐릭터 밑에서부터 Mesh까지의 거리측정 ****/
 	{

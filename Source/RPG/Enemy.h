@@ -12,6 +12,7 @@ UENUM(BlueprintType)
 enum class EEnemyMovementStatus : uint8
 {
 	EMS_Idle	UMETA(DisplayName = "Idle"),
+	EMS_Search	UMETA(DisplayName = "Search"),
 	EMS_Chase	UMETA(DisplayName = "Chase"),
 	EMS_Attack	UMETA(DisplayName = "Attack"),
 	EMS_Dead	UMETA(DisplayName = "Dead"),
