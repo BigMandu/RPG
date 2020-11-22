@@ -277,3 +277,8 @@ void AEnemyAIController::UpdateHasDetectedPlayer(bool HasDetectedPlayer)
 {
 	BBComp->SetValueAsBool(HasDetectedPlayerKey, HasDetectedPlayer);
 }
+
+void AEnemyAIController::UpdateCanAttack(bool CanAttack)
+{
+	BBComp->SetValueAsBool(CanAttackKey, CanAttack);
+}

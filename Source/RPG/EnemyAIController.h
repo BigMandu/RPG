@@ -59,6 +59,7 @@ public:
 	const FName HasDetectedPlayerKey = FName("HasDetectedPlayer");
 	const FName LastPlayerLocationKey = FName("LastPlayerLocationKey");
 	const FName LastPlayerRotationKey = FName("LastPlayerRotationKey");
+	const FName CanAttackKey = FName("CanAttack");
 	
 
 protected:
@@ -96,5 +97,6 @@ public:
 	////  Blackboard Key update function.  
 	void UpdateTargetKey(AActor* Target);
 	void UpdateHasDetectedPlayer(bool HasDetectedPlayer);
+	void UpdateCanAttack(bool CanAttack);
 
 };

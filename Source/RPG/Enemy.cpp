@@ -218,9 +218,10 @@ void AEnemy::CombatSphereOverlapBegin(UPrimitiveComponent* OverlappedComponent, 
 	if (OtherActor)
 	{
 		AMainCharacter* MainChar = Cast<AMainCharacter>(OtherActor);
-		if (MainChar)
+		if (MainChar && AIController)
 		{
-			SetEnemyMovementStatus(EEnemyMovementStatus::EMS_Attack);
+			//SetEnemyMovementStatus(EEnemyMovementStatus::EMS_Attack);
+			AIController->UpdateCanAttack(true);
 		}
 	}
 	
