@@ -3,19 +3,17 @@
 #pragma once
 
 #include "CoreMinimal.h"
-#include "BehaviorTree/BTTaskNode.h"
-#include "BTTask_SearchPlayer.generated.h"
+#include "BehaviorTree/Tasks/BTTask_MoveTo.h"
+#include "BTTask_Search.generated.h"
 
 /**
  * 
  */
 UCLASS()
-class RPG_API UBTTask_SearchPlayer : public UBTTaskNode
+class RPG_API UBTTask_Search : public UBTTask_MoveTo
 {
 	GENERATED_BODY()
 public:
-	UBTTask_SearchPlayer();
+	UBTTask_Search();
 	virtual EBTNodeResult::Type ExecuteTask(UBehaviorTreeComponent& OwnerComp, uint8* NodeMemory) override;
-
-	//EBTNodeResult::Type PerformTask(UBehaviorTreeComponent& OwnerComp);
 };

@@ -11,7 +11,7 @@
 UENUM(BlueprintType)
 enum class EEnemyMovementStatus : uint8
 {
-	EMS_Idle	UMETA(DisplayName = "Idle"),
+	EMS_Patrol	UMETA(DisplayName = "Patrol"),
 	EMS_Search	UMETA(DisplayName = "Search"),
 	EMS_Chase	UMETA(DisplayName = "Chase"),
 	EMS_Attack	UMETA(DisplayName = "Attack"),
@@ -19,6 +19,8 @@ enum class EEnemyMovementStatus : uint8
 
 	EMS_MAX		UMETA(DisplayName = "DefaultMAX")
 };
+
+
 
 UCLASS()
 class RPG_API AEnemy : public ACharacter
@@ -49,6 +51,9 @@ public:
 
 	UPROPERTY(EditAnywhere, Category = "Behavior")
 	class UBehaviorTree* EnemyBehavior;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "AI")
+	float PatrolArea; //정찰 범위 BTTask_SearchPatrolLocation에서 사용함.
 
 	/*
 	//////////////AI TEST////////////////////

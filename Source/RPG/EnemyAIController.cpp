@@ -25,7 +25,7 @@ AEnemyAIController::AEnemyAIController()
 	PerceptionComponent->ConfigureSense(*SenseSightConfig);
 	SightRadius = 1000.f;
 	LoseSightradius = 1500.f;
-	VisionAngleDegrees = 50.f;
+	VisionAngleDegrees = 60.f;
 	MaxAge = 20.f;
 
 
@@ -159,6 +159,7 @@ void AEnemyAIController::MoveToRandomLocation() //TEST목적
 }
 */
 
+/*
 void AEnemyAIController::Chase(AActor* Chaser, AMainCharacter* Target)
 {
 	AEnemy* Enemy = Cast<AEnemy>(Chaser);
@@ -176,6 +177,7 @@ void AEnemyAIController::Chase(AActor* Chaser, AMainCharacter* Target)
 		MoveTo(MoveRequest, &NavPath);
 	}
 }
+*/
 
 //망한 함수
 /*

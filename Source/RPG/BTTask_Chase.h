@@ -3,14 +3,14 @@
 #pragma once
 
 #include "CoreMinimal.h"
-#include "BehaviorTree/BTTaskNode.h"
+#include "BehaviorTree/Tasks/BTTask_MoveTo.h"
 #include "BTTask_Chase.generated.h"
 
 /**
  * 
  */
 UCLASS()
-class RPG_API UBTTask_Chase : public UBTTaskNode
+class RPG_API UBTTask_Chase : public UBTTask_MoveTo
 {
 	GENERATED_BODY()
 public:

@@ -10,12 +10,14 @@
 
 UBTTask_SearchPatrolLocation::UBTTask_SearchPatrolLocation()
 {
-	NodeName = TEXT("RandomPatrol");
+	NodeName = TEXT("GetPatrolLocation");
 }
 
 EBTNodeResult::Type UBTTask_SearchPatrolLocation::ExecuteTask(UBehaviorTreeComponent & OwnerComp, uint8 * NodeMemory)
 {
-	EBTNodeResult::Type Result = Super::ExecuteTask(OwnerComp, NodeMemory);
+	Super::ExecuteTask(OwnerComp, NodeMemory);
+	EBTNodeResult::Type Result = EBTNodeResult::Failed;
+
 	UBlackboardComponent* BBComp = OwnerComp.GetBlackboardComponent();
 	AEnemyAIController* AICon = Cast<AEnemyAIController>(OwnerComp.GetAIOwner()); //AIController를 가져옴.
 	AEnemy* Enemy = Cast<AEnemy>(OwnerComp.GetAIOwner()->GetCharacter()); //Enemy를 가져옴.
@@ -28,23 +30,21 @@ EBTNodeResult::Type UBTTask_SearchPatrolLocation::ExecuteTask(UBehaviorTreeCompo
 		UNavigationSystemV1* NavSys = UNavigationSystemV1::GetNavigationSystem(Enemy->GetWorld());
 		if (NavSys)
 		{
+			Enemy->SetEnemyMovementStatus(EEnemyMovementStatus::EMS_Patrol);
 			Enemy->GetCharacterMovement()->MaxWalkSpeed = 300.f;
 			FVector OriginLo = BBComp->GetValueAsVector(AICon->OriginPosKey); //Enemy의 월드 스폰위치를 기준으로 정찰.
 			FVector PatrolLo;
-			float PatrolArea = 300.f; //기준점부터 정찰할 범위 설정.
 
-			//스폰위치 ~ Patrol Area 범위내 랜덤 위치로 정찰.
-			PatrolLo = NavSys->GetRandomReachablePointInRadius(Enemy->GetWorld(), OriginLo, PatrolArea);
+			//스폰위치 ~ Patrol Area 범위내 랜덤 위치를 정찰 위치로 설정.
+			PatrolLo = NavSys->GetRandomReachablePointInRadius(Enemy->GetWorld(), OriginLo, Enemy->PatrolArea);
 			
-			BBComp->SetValueAsVector(AICon->PatrolPosKey,PatrolLo); //를 정찰 위치로 세팅.
+			BBComp->SetValueAsVector(AICon->PatrolPosKey,PatrolLo); //정찰 위치를 Blackboard Key로 넘겨줌.
 			//디버깅용
-			{
-				//UE_LOG(LogTemp, Warning, TEXT("Start From : %s, Move To : %s"), *OriginLo.ToString(), *PatrolLo.ToString());
-			}
-			return EBTNodeResult::Succeeded;	
+			/*{
+				UE_LOG(LogTemp, Warning, TEXT("Start From : %s, Move To : %s"), *OriginLo.ToString(), *PatrolLo.ToString());
+			}*/
+			Result = EBTNodeResult::Succeeded;
 		}
-		
-		return EBTNodeResult::Failed;
 	}
-	return EBTNodeResult::Failed;	
+	return Result;
 }

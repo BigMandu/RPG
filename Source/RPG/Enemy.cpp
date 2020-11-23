@@ -28,6 +28,8 @@ AEnemy::AEnemy()
 	CombatSphere->SetupAttachment(GetRootComponent());
 	CombatSphere->InitSphereRadius(80.f);
 
+	//정찰범위 디폴트로 500 설정. BTTask_SearchPatrolLocation에서 사용.
+	PatrolArea = 500.f; 	
 
 	//움직임
 	GetCharacterMovement()->bOrientRotationToMovement = true;
@@ -210,7 +212,7 @@ void AEnemy::AgroSphereOverlapBegin(UPrimitiveComponent* OverlappedComponent, AA
 
 void AEnemy::AgroSphereOverlapEnd(UPrimitiveComponent* OverlappedComponent, AActor* OtherActor, UPrimitiveComponent* OtherComp, int32 OtherBodyIndex)
 {
-	SetEnemyMovementStatus(EEnemyMovementStatus::EMS_Idle);
+	//SetEnemyMovementStatus(EEnemyMovementStatus::EMS_Idle);
 }
 
 void AEnemy::CombatSphereOverlapBegin(UPrimitiveComponent* OverlappedComponent, AActor* OtherActor, UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult)
@@ -235,6 +237,7 @@ void AEnemy::CombatSphereOverlapEnd(UPrimitiveComponent* OverlappedComponent, AA
 		if (MainChar && AIController)
 		{
 			//AIController->Chase(this, MainChar);
+			AIController->UpdateCanAttack(false);
 		}
 	}
 }

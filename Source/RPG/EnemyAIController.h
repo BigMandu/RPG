@@ -75,10 +75,12 @@ public:
 
 
 	/******** ACT Function********/
+	/*
 	UFUNCTION()
 	void Chase(class AActor* Chaser, class AMainCharacter* Target);
 
 	void SearchAndMove(FVector LastLocation, FVector TargetLocation);
+	*/
 
 	/***************************************/
 	//////////// AI Perception //////////////
