@@ -16,6 +16,4 @@ class RPG_API UBTTask_SearchPlayer : public UBTTaskNode
 public:
 	UBTTask_SearchPlayer();
 	virtual EBTNodeResult::Type ExecuteTask(UBehaviorTreeComponent& OwnerComp, uint8* NodeMemory) override;
-
-	//EBTNodeResult::Type PerformTask(UBehaviorTreeComponent& OwnerComp);
 };

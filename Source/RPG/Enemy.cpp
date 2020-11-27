@@ -42,6 +42,10 @@ AEnemy::AEnemy()
 	//Pawn이 AI컨트롤러를 생성하고, 소유하는 시기를 결정한다.여기선 World에 배치되거나 스폰될때.
 	AutoPossessAI = EAutoPossessAI::PlacedInWorldOrSpawned; 
 	
+	//Combat 관련 
+	NumberOfCombatAnim = 3; //CombatMontage Animation 개수 디폴트값 지정
+	bAttacking = false;
+
 
 	/*
 	//////////AI TEST/////////
@@ -49,6 +53,17 @@ AEnemy::AEnemy()
 	SenseSightConfig = CreateDefaultSubobject<UAISenseConfig_Sight>(TEXT("Sight"));
 	PerceptionComponent->ConfigureSense(*SenseSightConfig);
 	*/
+}
+
+
+void AEnemy::PostInitializeComponents()
+{
+	Super::PostInitializeComponents();
+
+	AgroSphere->OnComponentBeginOverlap.AddDynamic(this, &AEnemy::AgroSphereOverlapBegin);
+	AgroSphere->OnComponentEndOverlap.AddDynamic(this, &AEnemy::AgroSphereOverlapEnd);
+	CombatSphere->OnComponentBeginOverlap.AddDynamic(this, &AEnemy::CombatSphereOverlapBegin);
+	CombatSphere->OnComponentEndOverlap.AddDynamic(this, &AEnemy::CombatSphereOverlapEnd);
 }
 
 // Called when the game starts or when spawned
@@ -59,10 +74,7 @@ void AEnemy::BeginPlay()
 	//AI Controller로 캐스트,
 	AIController = Cast<AEnemyAIController>(GetController());
 
-	AgroSphere->OnComponentBeginOverlap.AddDynamic(this, &AEnemy::AgroSphereOverlapBegin);
-	AgroSphere->OnComponentEndOverlap.AddDynamic(this, &AEnemy::AgroSphereOverlapEnd);
-	CombatSphere->OnComponentBeginOverlap.AddDynamic(this, &AEnemy::CombatSphereOverlapBegin);
-	CombatSphere->OnComponentEndOverlap.AddDynamic(this, &AEnemy::CombatSphereOverlapEnd);
+	
 
 
 	/*
@@ -239,5 +251,55 @@ void AEnemy::CombatSphereOverlapEnd(UPrimitiveComponent* OverlappedComponent, AA
 			//AIController->Chase(this, MainChar);
 			AIController->UpdateCanAttack(false);
 		}
+	}
+}
+
+
+void AEnemy::Attack()
+{
+	SetEnemyMovementStatus(EEnemyMovementStatus::EMS_Attack);
+	//BehaviorTree에서 검증을 했으니 바로 Attack모션으로 해준다.
+	NumberOfCombatAnim = 3; //Animation 개수.( 기본값. Editor에서 수정 가능하도록 해둠.)
+
+	if (!bAttacking)
+	{
+		bAttacking = true;
+		UAnimInstance* AnimInstance = GetMesh()->GetAnimInstance();
+
+		if (AnimInstance)
+		{
+			AnimInstance->OnMontageEnded.AddDynamic(this, &AEnemy::OnCombatMontageEnded); //OnMontageEnded와 Custom을 연결해줌.
+
+			Section = FMath::RandRange(0, NumberOfCombatAnim - 1); //버림으로 in32타입을 구함.
+			switch (Section)
+			{
+				
+			case 0:
+				AnimInstance->Montage_Play(CombatMontage, 1.25f);
+				AnimInstance->Montage_JumpToSection(FName("Attack_1"), CombatMontage);
+				break;
+			case 1:
+				AnimInstance->Montage_Play(CombatMontage, 1.25f);
+				AnimInstance->Montage_JumpToSection(FName("Attack_2"), CombatMontage);
+				break;
+			case 2:
+				AnimInstance->Montage_Play(CombatMontage, 1.25f);
+				AnimInstance->Montage_JumpToSection(FName("Attack_Strong"), CombatMontage);
+				break;
+			default:
+				break;
+			}
+		}
+	}
+}
+
+
+//공격 모션이 끝나면, OnMontageEnded가 호출되는데, 이때 delegate로 bind한 이 함수도 호출되면서
+//bAttacking을 false시켜줌.
+void AEnemy::OnCombatMontageEnded(UAnimMontage* Montage, bool bInterrupted)
+{
+	if (bAttacking)
+	{
+		bAttacking = false;
 	}
 }

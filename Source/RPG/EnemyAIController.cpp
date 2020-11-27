@@ -28,7 +28,6 @@ AEnemyAIController::AEnemyAIController()
 	VisionAngleDegrees = 60.f;
 	MaxAge = 20.f;
 
-
 	SenseSightConfig->SightRadius = SightRadius;
 	SenseSightConfig->LoseSightRadius = LoseSightradius;
 	SenseSightConfig->PeripheralVisionAngleDegrees = VisionAngleDegrees; //AI의 시야각 설정
@@ -52,9 +51,9 @@ void AEnemyAIController::BeginPlay() //레벨이 시작될때 호출됨.
 	/*
 	FTimerHandle RandomTimerHandle;
 	GetWorldTimerManager().SetTimer(RandomTimerHandle, this, &AEnemyAIController::MoveToRandomLocation, 3.0f, true);
-	*/
+	
 	//NavSys = FNavigationSystem::GetCurrent<UNavigationSystemV1>(GetWorld());
-
+	*/
 	PerceptionComponent->OnTargetPerceptionUpdated.AddDynamic(this, &AEnemyAIController::DetectActor);
 }
 

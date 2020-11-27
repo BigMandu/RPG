@@ -55,6 +55,28 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "AI")
 	float PatrolArea; //정찰 범위 BTTask_SearchPatrolLocation에서 사용함.
 
+
+	//////////////////////////////
+	/****    Enemy Combat    ****/
+	//////////////////////////////
+
+	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite, Category = "Combat")
+	class UAnimMontage* CombatMontage;
+
+	UFUNCTION()
+	void OnCombatMontageEnded(UAnimMontage* Montage, bool bInterrupted); //OnMontageEnded delegate와 연결할 함수.
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Combat")
+	bool bAttacking;
+
+	UFUNCTION()
+	void Attack();
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Combat")
+	int32 NumberOfCombatAnim; //Animation개수를 넣어줌. defaults value = 3;
+
+	int32 Section; //특정 Animation을 재생하기 위한 값.
+
 	/*
 	//////////////AI TEST////////////////////
 	class UNavigationSystemV1* NavSystem; //TEST목적, RandomLocation을 얻는 함수를 사용하기 위해.
@@ -79,14 +101,10 @@ public:
 	// Called every frame
 	virtual void Tick(float DeltaTime) override;
 
+	virtual void PostInitializeComponents() override;
+
 	// Called to bind functionality to input
 	virtual void SetupPlayerInputComponent(class UInputComponent* PlayerInputComponent) override;
-
-	//////////////////////////////
-	/****      Enemy AI      ****/
-	//////////////////////////////
-	//UFUNCTION()
-	//void Chase(class AMainCharacter* Target);
 
 	UFUNCTION()
 	virtual void AgroSphereOverlapBegin(UPrimitiveComponent* OverlappedComponent, AActor* OtherActor, UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult);
@@ -96,5 +114,11 @@ public:
 	virtual void CombatSphereOverlapBegin(UPrimitiveComponent* OverlappedComponent, AActor* OtherActor, UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult);
 	UFUNCTION()
 	virtual void CombatSphereOverlapEnd(UPrimitiveComponent* OverlappedComponent, AActor* OtherActor, UPrimitiveComponent* OtherComp, int32 OtherBodyIndex);
+
+
+
+	//////////////////////////////
+	/****   Enemy Combat     ****/
+	//////////////////////////////
 
 };

@@ -5,21 +5,40 @@
 #include "BehaviorTree/BlackboardComponent.h"
 #include "GameFramework/CharacterMovementComponent.h"
 #include "Enemy.h"
+#include "EnemyAIController.h"
 
 UBTTask_Attack::UBTTask_Attack()
 {
 	NodeName = TEXT("Attack");
+	bNotifyTick = true;
+	
+}
+
+void UBTTask_Attack::TickTask(UBehaviorTreeComponent& OwnerComp, uint8* NodeMemory, float DeltaSeconds)
+{
+	AEnemy* Enemy = Cast<AEnemy>(OwnerComp.GetAIOwner()->GetCharacter());
+	if (Enemy && Enemy->bAttacking == false)
+	{
+		FinishLatentTask(OwnerComp, EBTNodeResult::Succeeded);
+	}
 }
 
 EBTNodeResult::Type UBTTask_Attack::ExecuteTask(UBehaviorTreeComponent& OwnerComp, uint8* NodeMemory)
 {
-	AEnemy* Enemy = Cast<AEnemy>(OwnerComp.GetOwner());
+	
+	EBTNodeResult::Type NodeResult = EBTNodeResult::InProgress;
 
-	if (Enemy)
+	AEnemy* Enemy = Cast<AEnemy>(OwnerComp.GetAIOwner()->GetCharacter());
+	AEnemyAIController* AICon = Cast<AEnemyAIController>(OwnerComp.GetAIOwner());
+
+	if (Enemy == nullptr || AICon == nullptr)
 	{
-		Enemy->SetEnemyMovementStatus(EEnemyMovementStatus::EMS_Attack);
+		NodeResult = EBTNodeResult::Failed;
+	} 
+	
+	//Enemy->SetEnemyMovementStatus(EEnemyMovementStatus::EMS_Attack);
+	AICon->StopMovement();
+	Enemy->Attack();
 
-		return EBTNodeResult::Succeeded;
-	}
-	return EBTNodeResult::Failed;
+	return NodeResult;
 }
