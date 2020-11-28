@@ -283,3 +283,8 @@ void AEnemyAIController::UpdateCanAttack(bool CanAttack)
 {
 	BBComp->SetValueAsBool(CanAttackKey, CanAttack);
 }
+
+void AEnemyAIController::UpdateCanDashAttack(bool CanDashAttack)
+{
+	BBComp->SetValueAsBool(CanDashAttackKey, CanDashAttack);
+}

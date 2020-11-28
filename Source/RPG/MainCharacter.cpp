@@ -413,6 +413,18 @@ void AMainCharacter::SetMovementStatus(EMovementStatus Status)
 	}
 }
 
+
+void AMainCharacter::CharacterRotate()
+{
+	float ForwardAxis = GetInputAxisValue(FName("MoveForward"));
+	float RightAxis = GetInputAxisValue(FName("MoveRight"));
+	FVector Direction = FVector(ForwardAxis, RightAxis, 0.f).GetSafeNormal(); //입력에 대한 방향.
+
+	FRotator Rotation = FRotator(0.f, Controller->GetControlRotation().Yaw + Direction.Rotation().Yaw, 0.f); //회전방향 절대축에 입력방향을 더함
+	
+	SetActorRotation(Rotation);
+}
+
 /************ Money **************/
 ///////// Coin, Soul 관련 함수 /////
 /*********************************/
@@ -467,6 +479,9 @@ void AMainCharacter::Attack()
 	if (AnimInstance && CombatMontage)
 	{
 		bAttacking = true;
+		
+		CharacterRotate(); //공격중 회전입력이 들어오면 회전하도록 해줌.
+
 		if(!bSaveAttack && bAttacking)
 		{
 			AnimInstance->Montage_Play(CombatMontage, 1.0f);

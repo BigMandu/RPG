@@ -60,6 +60,7 @@ public:
 	const FName LastPlayerLocationKey = FName("LastPlayerLocationKey");
 	const FName LastPlayerRotationKey = FName("LastPlayerRotationKey");
 	const FName CanAttackKey = FName("CanAttack");
+	const FName CanDashAttackKey = FName("CanDashAttack");
 	
 
 protected:
@@ -100,5 +101,6 @@ public:
 	void UpdateTargetKey(AActor* Target);
 	void UpdateHasDetectedPlayer(bool HasDetectedPlayer);
 	void UpdateCanAttack(bool CanAttack);
+	void UpdateCanDashAttack(bool CanDashAttack);
 
 };

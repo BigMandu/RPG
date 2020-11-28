@@ -59,9 +59,14 @@ public:
 	//////////////////////////////
 	/****    Enemy Combat    ****/
 	//////////////////////////////
+	
+	class UAnimInstance* AnimInstance;
 
 	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite, Category = "Combat")
-	class UAnimMontage* CombatMontage;
+	class UAnimMontage* CloseCombatMontage;
+
+	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite, Category = "Combat")
+	class UAnimMontage* DashAttackCombatMontage;
 
 	UFUNCTION()
 	void OnCombatMontageEnded(UAnimMontage* Montage, bool bInterrupted); //OnMontageEnded delegate와 연결할 함수.
@@ -70,7 +75,10 @@ public:
 	bool bAttacking;
 
 	UFUNCTION()
-	void Attack();
+	void Attack(UBlackboardComponent* BBComp);
+	
+	UFUNCTION()
+	void RotateToTarget(UBlackboardComponent* BBComp, AEnemyAIController* AICon);
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Combat")
 	int32 NumberOfCombatAnim; //Animation개수를 넣어줌. defaults value = 3;

@@ -180,6 +180,8 @@ public:
 	void MoveForward(float Value);
 	void MoveRight(float Value);
 
+	void CharacterRotate();
+
 	void SetMovementStatus(EMovementStatus Status);
 	FORCEINLINE void SetStaminaStatus(EStaminaStatus Status) { StaminaStatus = Status; }
 

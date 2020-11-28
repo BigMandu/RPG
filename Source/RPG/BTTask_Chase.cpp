@@ -23,8 +23,12 @@ EBTNodeResult::Type UBTTask_Chase::ExecuteTask(UBehaviorTreeComponent& OwnerComp
 		UE_LOG(LogTemp, Warning, TEXT("AEnemy Cast failure"));
 		NodeResult = EBTNodeResult::Failed;
 	}
-	Enemy->SetEnemyMovementStatus(EEnemyMovementStatus::EMS_Chase);
-	Enemy->GetCharacterMovement()->MaxWalkSpeed = 550.f;
+
+	//if (Enemy->EnemyMovementStatus != EEnemyMovementStatus::EMS_Attack) //공격중이 아닐때 chase로 
+	{
+		Enemy->SetEnemyMovementStatus(EEnemyMovementStatus::EMS_Chase);
+		Enemy->GetCharacterMovement()->MaxWalkSpeed = 550.f;
+	}
 
 	return NodeResult;
 }
