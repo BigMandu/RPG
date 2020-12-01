@@ -47,7 +47,6 @@ AEnemy::AEnemy()
 	NumberOfCombatAnim = 3; //CombatMontage Animation 개수 디폴트값 지정
 	bAttacking = false;
 
-
 	/*
 	//////////AI TEST/////////
 	PerceptionComponent = CreateDefaultSubobject<UAIPerceptionComponent>(TEXT("PerceptionComp"));
@@ -77,9 +76,6 @@ void AEnemy::BeginPlay()
 	
 	//AI Controller로 캐스트,
 	AIController = Cast<AEnemyAIController>(GetController());
-
-	
-
 
 	/*
 	
@@ -182,6 +178,16 @@ void AEnemy::Tick(float DeltaTime)
 {
 	Super::Tick(DeltaTime);
 
+
+	//CanAttack이면 Target(Player)에 향하도록 회전을 추가한다.
+	if (AIController->GetBlackboardComponent()->GetValueAsBool(AIController->CanAttackKey) ||
+		AIController->GetBlackboardComponent()->GetValueAsBool(AIController->CanDashAttackKey))
+	{
+		if (EnemyMovementStatus != EEnemyMovementStatus::EMS_Attack) //공격은 가능하지만, 공격을 하지 않을때만 회전하도록 변경.
+		{
+			RotateToTarget();
+		}
+	}
 }
 
 // Called to bind functionality to input
@@ -216,26 +222,28 @@ void AEnemy::Chase(class AMainCharacter* Target)
 void AEnemy::AgroSphereOverlapBegin(UPrimitiveComponent* OverlappedComponent, AActor* OtherActor, UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult)
 {
 	//UE_LOG(LogTemp, Warning, TEXT("AItem::OnOverlap Begin"));
+	/*
 	if (OtherActor)
 	{
 		AMainCharacter* MainChar = Cast<AMainCharacter>(OtherActor);
 		if (MainChar && AIController)
 		{
-			//AIController->UpdateCanDashAttack(true);
+			AIController->UpdateCanDashAttack(true);
 		}
-	}
+	}*/
 }
 
 void AEnemy::AgroSphereOverlapEnd(UPrimitiveComponent* OverlappedComponent, AActor* OtherActor, UPrimitiveComponent* OtherComp, int32 OtherBodyIndex)
 {
+	/*
 	if (OtherActor)
 	{
 		AMainCharacter* MainChar = Cast<AMainCharacter>(OtherActor);
 		if (MainChar && AIController)
 		{
-			//AIController->UpdateCanDashAttack(false);
+			AIController->UpdateCanDashAttack(false);
 		}
-	}
+	}*/
 }
 
 void AEnemy::CombatSphereOverlapBegin(UPrimitiveComponent* OverlappedComponent, AActor* OtherActor, UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult)
@@ -247,7 +255,6 @@ void AEnemy::CombatSphereOverlapBegin(UPrimitiveComponent* OverlappedComponent, 
 		{
 			//SetEnemyMovementStatus(EEnemyMovementStatus::EMS_Attack);
 			AIController->UpdateCanAttack(true);
-			//AIController->UpdateCanDashAttack(false);
 
 		}
 	}
@@ -262,7 +269,6 @@ void AEnemy::CombatSphereOverlapEnd(UPrimitiveComponent* OverlappedComponent, AA
 		if (MainChar && AIController)
 		{
 			AIController->UpdateCanAttack(false);
-			//AIController->UpdateCanDashAttack(true);
 		}
 	}
 }
@@ -270,23 +276,21 @@ void AEnemy::CombatSphereOverlapEnd(UPrimitiveComponent* OverlappedComponent, AA
 
 void AEnemy::Attack(UBlackboardComponent* BBComp)
 {	
-	
 	if (!bAttacking)
 	{
 		bAttacking = true;
-		//UAnimInstance* AnimInstance = GetMesh()->GetAnimInstance(); 생성자에 생성함.
-		AEnemyAIController* AICon = Cast<AEnemyAIController>(GetController());
-		
-		if (AnimInstance && AICon)
+		if (AnimInstance && AIController)
 		{
-			//AnimInstance->OnMontageEnded.AddDynamic(this, &AEnemy::OnCombatMontageEnded); //OnMontageEnded와 Custom을 연결해줌. =-> postinitial에선언.
 			SetEnemyMovementStatus(EEnemyMovementStatus::EMS_Attack);
-			bool CloseCombat = BBComp->GetValueAsBool(AICon->CanAttackKey); //근접공격을 재생해야하는지
-			bool DashAttack = BBComp->GetValueAsBool(AICon->CanDashAttackKey); //대쉬공격을 해야하는지 판단 하기 위해 bb에서 값을 가져옴.
 
-			if (CloseCombat)// && !DashAttack) //근접공격이 true면
+			bool CloseCombat = BBComp->GetValueAsBool(AIController->CanAttackKey); //근접공격을 재생해야하는지
+			bool DashAttack = BBComp->GetValueAsBool(AIController->CanDashAttackKey); //대쉬공격을 해야하는지 판단 하기 위해 bb에서 값을 가져옴.
+			
+
+			if (CloseCombat && !DashAttack) //근접공격이 true면
 			{
-				AICon->StopMovement();
+				//bAttacking = true;
+				//AIController->StopMovement();
 				Section = FMath::RandRange(0, NumberOfCombatAnim - 1); //버림으로 in32타입을 구함.
 				AnimInstance->Montage_Play(CloseCombatMontage, 1.25f);
 
@@ -305,38 +309,33 @@ void AEnemy::Attack(UBlackboardComponent* BBComp)
 					break;
 				}
 			}
-			//Dash Attack...보류...
-			/*
+			
 			if (!CloseCombat && DashAttack) //Dash공격이 true면
 			{
-				//FTimerHandle Handle;
-				//FVector TargetLo = Cast<AMainCharacter>(BBComp->GetValueAsObject(AICon->TargetKey))->GetActorLocation();
-				//FVector NormalVector = (TargetLo - GetActorLocation()).GetSafeNormal();
-				FVector DashVector = GetActorForwardVector() * 3000.f;//NormalVector * 1000.f;
-				//DashVector = FVector(DashVector.X, DashVector.Y, 0.f);
 
+				FVector CurrentVector = GetActorLocation();
+				FVector DashVector(GetActorForwardVector() * 1200.f);
+				DashVector.Z = CurrentVector.Z; //오르막길, 내리막길에선 어떻게 하지??
 
-				//GetCharacterMovement()->RequestDirectMove(DashVector, false);
+				UE_LOG(LogTemp, Warning, TEXT("DashVector is : %s"), *DashVector.ToString());
+				
+				//AIController->MoveToLocation(DashVector + BeforeVector);
+				GetCharacterMovement()->MaxWalkSpeed = 950.f;
+
 				AnimInstance->Montage_Play(DashAttackCombatMontage, 1.2f);
-				AnimInstance->Montage_JumpToSection(FName("Dash"), DashAttackCombatMontage);
-				LaunchCharacter(DashVector, true , false);
-				//AddMovementInput(DashVector);
 				
-				
-				//GetWorld()->GetTimerManager().SetTimer(Handle, [=] 
-				//	{
-				//		if (FName("Dash") == AnimInstance->Montage_GetCurrentSection(DashAttackCombatMontage))
-				//		{
-				//			UE_LOG(LogTemp, Warning, TEXT("MainCharLocation : %s "), *TargetLo.ToString());
-				//			UE_LOG(LogTemp, Warning, TEXT("EnemyLocation : %s "), *GetActorLocation().ToString());
-				//			UE_LOG(LogTemp, Warning, TEXT("NormalVector : %s, DashVector : %s"), *NormalVector.ToString(), *DashVector.ToString());
-				//			//GetCharacterMovement()->RequestDirectMove(DashVector, false);
-				//			//GetCharacterMovement()->Velocity = DashVector;
-				//			//GetCharacterMovement()->MaxWalkSpeed = 650.f;
-				//			LaunchCharacter(DashVector, false, false);
-				//		}
-				//	}, 1.0f, true);
-			}*/
+				GetWorld()->GetTimerManager().SetTimer(DashAttackHandle, [=]
+				{
+					if (FName("Dash") == AnimInstance->Montage_GetCurrentSection(DashAttackCombatMontage))
+					{
+						//bAttacking = true;
+						FAIMoveRequest MoveReq;
+						MoveReq.SetGoalLocation(DashVector + CurrentVector);
+						MoveReq.SetStopOnOverlap(true); //추가해봄.
+						AIController->MoveTo(MoveReq);
+					}
+				}, 1.0f, true);
+			}
 		}
 	}
 }
@@ -347,22 +346,33 @@ void AEnemy::Attack(UBlackboardComponent* BBComp)
 void AEnemy::OnCombatMontageEnded(UAnimMontage* Montage, bool bInterrupted)
 {
 	bAttacking = false;
+	if (DashAttackHandle.IsValid())
+	{
+		GetWorldTimerManager().ClearTimer(DashAttackHandle);
+	}
 }
 
 
-void AEnemy::RotateToTarget(UBlackboardComponent* BBComp, AEnemyAIController* AICon)
+void AEnemy::RotateToTarget()
 {
-	float InterpSpeed = 2.0f;
-	FVector TargetLo = Cast<AMainCharacter>(BBComp->GetValueAsObject(AICon->TargetKey))->GetActorLocation();
+	float InterpSpeed = 5.0f;
+	UBlackboardComponent* BBComp = AIController->GetBlackboardComponent();
+	AMainCharacter* MainChar = Cast<AMainCharacter>(BBComp->GetValueAsObject(AIController->TargetKey));
+	if (!MainChar || !BBComp)
+	{
+		//UE_LOG(LogTemp, Warning, TEXT("Enemy->RotateToTarget() Failed!"));
+		return;
+	}
+	FVector TargetLo = MainChar->GetActorLocation();
 	FVector OriginLo = GetActorLocation();
 	
-	FVector LookAtVector = FVector(TargetLo - OriginLo).GetSafeNormal();
-	//FRotator LookAtRotation = LookAtVector.Rotation();
+	FVector LookAtVector = (TargetLo - OriginLo).GetSafeNormal(); //방향벡터
+	FRotator LookAtYaw(0.f, (LookAtVector.Rotation()).Yaw, 0.f);
 
-	FRotator LookAtRotation = FRotationMatrix::MakeFromX(LookAtVector).Rotator();
+	//UE_LOG(LogTemp, Warning, TEXT("PlayerLocation : %s"), *TargetLo.ToString());
+	//UE_LOG(LogTemp, Warning, TEXT("LookVector : %s"), *LookAtVector.ToString());
 
-	//FRotator LookAtRotationYaw(0.f, LookAtRotation.Yaw, 0.f);
-	FRotator InterpRotation = FMath::RInterpTo(GetActorRotation(), LookAtRotation, GetWorld()->GetDeltaSeconds(), InterpSpeed);
+	FRotator InterpRotation = FMath::RInterpTo(GetActorRotation(), LookAtYaw, GetWorld()->GetDeltaSeconds(), InterpSpeed);
 	
 	SetActorRotation(InterpRotation);
 }

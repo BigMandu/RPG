@@ -11,13 +11,13 @@
 UENUM(BlueprintType)
 enum class EEnemyMovementStatus : uint8
 {
-	EMS_Patrol	UMETA(DisplayName = "Patrol"),
-	EMS_Search	UMETA(DisplayName = "Search"),
-	EMS_Chase	UMETA(DisplayName = "Chase"),
-	EMS_Attack	UMETA(DisplayName = "Attack"),
-	EMS_Dead	UMETA(DisplayName = "Dead"),
+	EMS_Patrol		UMETA(DisplayName = "Patrol"),
+	EMS_Search		UMETA(DisplayName = "Search"),
+	EMS_Chase		UMETA(DisplayName = "Chase"),
+	EMS_Attack		UMETA(DisplayName = "Attack"),
+	EMS_Dead		UMETA(DisplayName = "Dead"),
 
-	EMS_MAX		UMETA(DisplayName = "DefaultMAX")
+	EMS_MAX			UMETA(DisplayName = "DefaultMAX")
 };
 
 
@@ -37,7 +37,8 @@ public:
 	EEnemyMovementStatus EnemyMovementStatus;
 
 	FORCEINLINE void SetEnemyMovementStatus(EEnemyMovementStatus EnemyStatus) { EnemyMovementStatus = EnemyStatus; }
-
+	
+	
 	//////////////////////////////
 	/****      Enemy AI      ****/
 	//////////////////////////////
@@ -69,16 +70,20 @@ public:
 	class UAnimMontage* DashAttackCombatMontage;
 
 	UFUNCTION()
+	void Attack(UBlackboardComponent* BBComp);
+
+	UFUNCTION()
 	void OnCombatMontageEnded(UAnimMontage* Montage, bool bInterrupted); //OnMontageEnded delegate와 연결할 함수.
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Combat")
 	bool bAttacking;
 
-	UFUNCTION()
-	void Attack(UBlackboardComponent* BBComp);
+	FTimerHandle DashAttackHandle; //DashAttack때 사용할 TimerHandle
+
+	
 	
 	UFUNCTION()
-	void RotateToTarget(UBlackboardComponent* BBComp, AEnemyAIController* AICon);
+	void RotateToTarget();//Target(Player)를 향해 회전. AIController에서 호출.
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Combat")
 	int32 NumberOfCombatAnim; //Animation개수를 넣어줌. defaults value = 3;

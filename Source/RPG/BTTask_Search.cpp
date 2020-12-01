@@ -24,6 +24,7 @@ EBTNodeResult::Type UBTTask_Search::ExecuteTask(UBehaviorTreeComponent& OwnerCom
 
 	Enemy->SetEnemyMovementStatus(EEnemyMovementStatus::EMS_Search);
 	Enemy->GetCharacterMovement()->MaxWalkSpeed = 450.f;
+	
 
 	return NodeResult;
 }

@@ -4,8 +4,10 @@
 
 #include "CoreMinimal.h"
 #include "AIController.h"
+#include "Enemy.h"
 #include "Perception/AIPerceptionTypes.h"
 #include "EnemyAIController.generated.h"
+
 
 /**
  * 
@@ -17,10 +19,7 @@ class RPG_API AEnemyAIController : public AAIController
 public:
 	AEnemyAIController();
 
-	/*
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "AI")
-	class UNavigationSystemV1* NavSys;
-	*/
+	class AEnemy* Enemy;
 
 	/***************************************/
 	//////////// AI Perception //////////////
@@ -61,6 +60,7 @@ public:
 	const FName LastPlayerRotationKey = FName("LastPlayerRotationKey");
 	const FName CanAttackKey = FName("CanAttack");
 	const FName CanDashAttackKey = FName("CanDashAttack");
+	const FName EnumUpdateKey = FName("EnumStatusKey");
 	
 
 protected:
@@ -102,5 +102,5 @@ public:
 	void UpdateHasDetectedPlayer(bool HasDetectedPlayer);
 	void UpdateCanAttack(bool CanAttack);
 	void UpdateCanDashAttack(bool CanDashAttack);
-
+	void UpdateEnumMovementStatus(EEnemyMovementStatus MovementStatus);
 };

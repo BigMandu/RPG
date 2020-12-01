@@ -18,6 +18,8 @@
 AEnemyAIController::AEnemyAIController()
 {
 	PrimaryActorTick.bCanEverTick = true;
+	
+	Enemy = nullptr;
 
 	//////////////////Perception //////////////////
 	PerceptionComponent = CreateDefaultSubobject<UAIPerceptionComponent>(TEXT("PerceptionComp"));
@@ -25,7 +27,7 @@ AEnemyAIController::AEnemyAIController()
 	PerceptionComponent->ConfigureSense(*SenseSightConfig);
 	SightRadius = 1000.f;
 	LoseSightradius = 1500.f;
-	VisionAngleDegrees = 60.f;
+	VisionAngleDegrees = 80.f;
 	MaxAge = 20.f;
 
 	SenseSightConfig->SightRadius = SightRadius;
@@ -60,6 +62,27 @@ void AEnemyAIController::BeginPlay() //레벨이 시작될때 호출됨.
 void AEnemyAIController::Tick(float DeltaTime)
 {
 	Super::Tick(DeltaTime);
+
+	//Dash Attack 가능여부 판단.
+	if (BBComp->GetValueAsBool(HasDetectedPlayerKey))
+	{
+		AMainCharacter* MainChar = Cast<AMainCharacter>(BBComp->GetValueAsObject(TargetKey));
+		if (MainChar)
+		{
+			FVector TargetLo = MainChar->GetActorLocation();
+			float DistanceToTarget = FVector::Dist(TargetLo, Enemy->GetActorLocation());
+			if (DistanceToTarget >= SightRadius-200.f) //포착 && 거리= (시야범위 - 200.f) 이상이면 dashattack가능.
+			{
+				UpdateCanDashAttack(true);
+			}
+			else
+			{
+				UpdateCanDashAttack(false);
+			}
+		}
+	}
+
+	UpdateEnumMovementStatus(Enemy->EnemyMovementStatus);
 }
 
 
@@ -80,6 +103,7 @@ void AEnemyAIController::DetectActor(AActor* Actor, FAIStimulus Stimulus)
 				//감지했을때 Target Key와 HasDetected를 Update해줌.
 				UpdateTargetKey(Actor);
 				UpdateHasDetectedPlayer(true);
+				
 
 				//아래는 디버깅.
 				{
@@ -97,8 +121,8 @@ void AEnemyAIController::DetectActor(AActor* Actor, FAIStimulus Stimulus)
 				GetWorldTimerManager().SetTimer(LostTargetTimer, LostTargetDelegate, DetectedPlayerLostTime, false); //SetTimer로 함수를 호출
 				
 				
-				BBComp->SetValueAsRotator(LastPlayerRotationKey, Main->GetActorRotation());// Player의 회전값도 넣어준다.
-				BBComp->SetValueAsVector(LastPlayerLocationKey, DetectLo); //마지막 감지 위치를 LastPlyaerLocationKey에 넘겨준다.
+				BBComp->SetValueAsRotator(LastPlayerRotationKey, Main->GetActorRotation());// Player의 회전값과
+				BBComp->SetValueAsVector(LastPlayerLocationKey, DetectLo); //마지막 감지 위치를 Blackboard에 넘겨준다.
 				UpdateHasDetectedPlayer(false);
 				
 				//디버깅
@@ -232,7 +256,7 @@ void AEnemyAIController::OnPossess(APawn * InPawn)
 {
 	Super::OnPossess(InPawn);
 
-	AEnemy* Enemy = Cast<AEnemy>(InPawn);
+	Enemy = Cast<AEnemy>(InPawn);
 	if (Enemy && Enemy->EnemyBehavior)
 	{
 		BBComp->InitializeBlackboard(*(Enemy->EnemyBehavior->BlackboardAsset)); //Blackboard초기화.
@@ -284,7 +308,13 @@ void AEnemyAIController::UpdateCanAttack(bool CanAttack)
 	BBComp->SetValueAsBool(CanAttackKey, CanAttack);
 }
 
-void AEnemyAIController::UpdateCanDashAttack(bool CanDashAttack)
+void AEnemyAIController::UpdateCanDashAttack(bool CanDashAttack) //EnemyAI -> Tick에서 사용함.
 {
 	BBComp->SetValueAsBool(CanDashAttackKey, CanDashAttack);
+}
+
+void AEnemyAIController::UpdateEnumMovementStatus(EEnemyMovementStatus MovementStatus)
+{
+	uint8 Value = (uint8)MovementStatus;
+	BBComp->SetValueAsEnum(EnumUpdateKey, Value);
 }

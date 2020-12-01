@@ -33,7 +33,6 @@ EBTNodeResult::Type UBTTask_Attack::ExecuteTask(UBehaviorTreeComponent& OwnerCom
 	{
 		NodeResult = EBTNodeResult::Failed;
 	}
-	//Enemy->RotateToTarget(OwnerComp.GetBlackboardComponent(), AICon); //Target으로 회전.
 	Enemy->Attack(OwnerComp.GetBlackboardComponent());
 
 	return NodeResult;
