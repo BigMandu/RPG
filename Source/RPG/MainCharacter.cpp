@@ -12,6 +12,7 @@
 #include "Perception/AIPerceptionStimuliSourceComponent.h"
 #include "Perception/AISense_Sight.h"
 #include "Perception/AISense.h"
+#include "Components/TimelineComponent.h"
 
 // Sets default values
 AMainCharacter::AMainCharacter()
@@ -322,7 +323,7 @@ void AMainCharacter::LMBDown()
 	{
 		if (!bAttacking)
 		{
-			Attack();
+			Attack();	
 		}
 		else
 		{
@@ -414,14 +415,15 @@ void AMainCharacter::SetMovementStatus(EMovementStatus Status)
 }
 
 
-void AMainCharacter::CharacterRotate()
+void AMainCharacter::CharacterRotate() //공격때 사용함.
 {
 	float ForwardAxis = GetInputAxisValue(FName("MoveForward"));
 	float RightAxis = GetInputAxisValue(FName("MoveRight"));
 	FVector Direction = FVector(ForwardAxis, RightAxis, 0.f).GetSafeNormal(); //입력에 대한 방향.
 
-	FRotator Rotation = FRotator(0.f, Controller->GetControlRotation().Yaw + Direction.Rotation().Yaw, 0.f); //회전방향 절대축에 입력방향을 더함
 	
+	FRotator Rotation = FRotator(0.f, Controller->GetControlRotation().Yaw + Direction.Rotation().Yaw, 0.f); //회전방향 절대축에 입력방향을 더함
+
 	SetActorRotation(Rotation);
 }
 
@@ -475,6 +477,13 @@ void AMainCharacter::Attack()
 		AttackAir();
 		return;
 	}
+	else if (MovementStatus == EMovementStatus::EMS_Sprint) //스프린트 상태일때 대쉬공격
+	{
+		SptirntAttack();
+		return;
+	}
+
+	//공중공격, 대쉬공격을 우선순위로 하고 난뒤/ 일반 공격.
 
 	if (AnimInstance && CombatMontage)
 	{
@@ -544,6 +553,44 @@ void AMainCharacter::AttackAir()
 	}
 }
 
+void AMainCharacter::SptirntAttack()
+{
+	UAnimInstance* Anim = GetMesh()->GetAnimInstance();
+	if (Anim && SprintCombatMontage)
+	{
+		FVector OriginLocation = GetActorLocation();
+		FVector TargetVector = GetActorForwardVector() * 725.f; //GetVelocity().Size();
+		TargetVector.Z = 0.f;
+		bAttacking = true;
+		Anim->Montage_Play(SprintCombatMontage, 1.3f);
+		
+		GetWorldTimerManager().SetTimer(SprintAttackTimer, [=]
+			{
+				FVector CurrentLocation = GetActorLocation();
+				bool bReachPoint = FVector().PointsAreNear(CurrentLocation, OriginLocation + TargetVector, 5.0f);
+				
+				//디버깅
+				/*
+				DrawDebugSphere(GetWorld(), OriginLocation + TargetVector, 25.f, 6, FColor::Green, false, 4.f, (uint8)nullptr, 1.0f);
+				UE_LOG(LogTemp, Warning, TEXT("-------------------------Timer ------------------------"));
+				UE_LOG(LogTemp, Warning, TEXT("Origin Location : %s -> ForwardVector : %s :::: TargetVector : %s"), *OriginLocation.ToString(), *GetActorForwardVector().ToString() ,*TargetVector.ToString());
+				*/
+
+				if (bReachPoint)
+				{
+					//UE_LOG(LogTemp, Warning, TEXT("Move request success And Clear Timer"));
+					return;
+				}
+				else
+				{
+					//UE_LOG(LogTemp, Warning, TEXT("Cur Location : %s -> Target Location : %s"), *CurrentLocation.ToString(), *(OriginLocation + TargetVector).ToString());
+					AddMovementInput(TargetVector, 1.0f * GetVelocity().Size());//캐릭터 속도 비율에 따라 앞으로 움직임.
+				}
+
+			}, GetWorld()->GetDeltaSeconds(), true);
+	}
+}
+
 void AMainCharacter::ComboSave()
 {
 	if (bSaveAttack)
@@ -558,6 +605,10 @@ void AMainCharacter::ComboReset()
 	bAttacking = false;
 	bSaveAttack = false;
 	AttackCount = 0;
+	if (SprintAttackTimer.IsValid())
+	{
+		GetWorldTimerManager().ClearTimer(SprintAttackTimer);
+	}
 }
 
 

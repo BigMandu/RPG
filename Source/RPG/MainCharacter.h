@@ -134,7 +134,12 @@ public:
 	class UAnimMontage* CombatMontage;
 
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Combat")
-	class UAnimMontage* AirCombatMontage;
+	UAnimMontage* AirCombatMontage;
+
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Combat")
+	UAnimMontage* SprintCombatMontage;
+
+	FTimerHandle SprintAttackTimer; //SprintAttack시 사용되는 타이머핸들
 
 	float CurHeight;
 
@@ -208,6 +213,8 @@ public:
 	void Attack();
 
 	void AttackAir();
+
+	void SptirntAttack();
 
 	bool CalcAirAttack();
 

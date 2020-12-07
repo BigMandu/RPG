@@ -81,7 +81,7 @@ void AEnemyAIController::Tick(float DeltaTime)
 			}
 		}
 	}
-
+	//상시로 Enum업데이트하기 위해서.
 	UpdateEnumMovementStatus(Enemy->EnemyMovementStatus);
 }
 
