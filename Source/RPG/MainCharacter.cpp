@@ -13,6 +13,7 @@
 #include "Perception/AISense_Sight.h"
 #include "Perception/AISense.h"
 #include "Components/TimelineComponent.h"
+#include "Components/CapsuleComponent.h"
 
 // Sets default values
 AMainCharacter::AMainCharacter()
@@ -560,10 +561,12 @@ void AMainCharacter::SptirntAttack()
 	{
 		FVector OriginLocation = GetActorLocation();
 		FVector TargetVector = GetActorForwardVector() * 725.f; //GetVelocity().Size();
+		//float HalfHeight = GetDefaultHalfHeight();
 		TargetVector.Z = 0.f;
 		bAttacking = true;
 		Anim->Montage_Play(SprintCombatMontage, 1.3f);
-		
+		//GetCapsuleComponent()->SetCapsuleHalfHeight(HalfHeight / 2);
+
 		GetWorldTimerManager().SetTimer(SprintAttackTimer, [=]
 			{
 				FVector CurrentLocation = GetActorLocation();
@@ -579,11 +582,13 @@ void AMainCharacter::SptirntAttack()
 				if (bReachPoint)
 				{
 					//UE_LOG(LogTemp, Warning, TEXT("Move request success And Clear Timer"));
+					
 					return;
 				}
 				else
 				{
 					//UE_LOG(LogTemp, Warning, TEXT("Cur Location : %s -> Target Location : %s"), *CurrentLocation.ToString(), *(OriginLocation + TargetVector).ToString());
+					
 					AddMovementInput(TargetVector, 1.0f * GetVelocity().Size());//캐릭터 속도 비율에 따라 앞으로 움직임.
 				}
 
@@ -605,8 +610,9 @@ void AMainCharacter::ComboReset()
 	bAttacking = false;
 	bSaveAttack = false;
 	AttackCount = 0;
-	if (SprintAttackTimer.IsValid())
+	if (GetWorldTimerManager().IsTimerActive(SprintAttackTimer))
 	{
+		//GetCapsuleComponent()->SetCapsuleHalfHeight(95.f);
 		GetWorldTimerManager().ClearTimer(SprintAttackTimer);
 	}
 }
