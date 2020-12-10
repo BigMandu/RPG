@@ -18,11 +18,11 @@ enum class EMovementStatus : uint8
 UENUM(BlueprintType)
 enum class EStaminaStatus : uint8
 {
-	ESS_Normal UMETA(DisplayName = "Normal"),
-	ESS_BelowMinimum UMETA(DisplayName = "BelowMinimum"),
-	ESS_Exhausted UMETA(DisplayName = "Exhausted"),
+	ESS_Normal			UMETA(DisplayName = "Normal"),
+	ESS_BelowMinimum	UMETA(DisplayName = "BelowMinimum"),
+	ESS_Exhausted		UMETA(DisplayName = "Exhausted"),
 	ESS_ExhaustedRecovery UMETA(DisplayName = "ExhaustedRecovery"),
-	ESS_Recovery UMETA(DisplayName = "Recovery"),
+	ESS_Recovery		UMETA(DisplayName = "Recovery"),
 
 	ESS_MAX UMETA(DisplayName = "DefaultMAX")
 };
@@ -82,6 +82,9 @@ public:
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Player Stats");
 	float Stamina;
 
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Player Stats");
+	float PlayerDamage;
+
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Player Stats");
 	int32 Coins;
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Player Stats");
@@ -116,15 +119,6 @@ public:
 	//Stamina의 최소 기준선, 다쓰고 회복될때 이 기준을 넘지 못하면, Stamina소모 기술 발동 불가.
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Movement")
 	float MinStamina; 
-	
-	/*******************************/
-	//---     Player Weapon     ---//
-	/*******************************/
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Item")
-	class AWeapon* EquippedWeapon;
-
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Item")
-	class AItem* OverlappingItem;
 
 
 	/*******************************/
@@ -151,6 +145,12 @@ public:
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Combat")
 	int32 AttackCount;
+
+	//UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Combat")
+	//AController* Instigator; //ApplyDamage에 넘겨줄 컨트롤러
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Combat")
+	TSubclassOf<UDamageType> DamageTypeClass;
 
 protected:
 	// Called when the game starts or when spawned
@@ -203,13 +203,20 @@ public:
 	/*******************************/
 	//---     Player Weapon     ---//
 	/*******************************/
-	void SetEquippedWeapon(AWeapon* WeaponToSet);
-	FORCEINLINE void SetActiveOverlappingItem(AItem* ItemToSet) { OverlappingItem = ItemToSet; }
+	void SetEquippedWeapon(class AWeapon* WeaponToSet);
+	FORCEINLINE void SetActiveOverlappingItem(class AItem* ItemToSet) { OverlappingItem = ItemToSet; }
 
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Item")
+	AWeapon* EquippedWeapon;
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Item")
+	AItem* OverlappingItem;
 
 	/*******************************/
 	//---     Player Combat     ---//
 	/*******************************/
+	void AttackDamage(class AEnemy* DamagedEnemy, float WeaponDamage);
+
 	void Attack();
 
 	void AttackAir();
@@ -223,6 +230,8 @@ public:
 
 	UFUNCTION(BlueprintCallable)
 	void ComboReset();
+
+	
 
 
 

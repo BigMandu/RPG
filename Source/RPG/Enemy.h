@@ -37,8 +37,28 @@ public:
 	EEnemyMovementStatus EnemyMovementStatus;
 
 	FORCEINLINE void SetEnemyMovementStatus(EEnemyMovementStatus EnemyStatus) { EnemyMovementStatus = EnemyStatus; }
+	///////////////////////////////
+
+	UPROPERTY(EditAnywhere,BlueprintReadWrite, Category = "Particles")
+	class UParticleSystem* HitParticle;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Particles")
+	class USoundCue* HitSound;
+
+	//////////////////////////////
+	/****      Enemy Stats   ****/
+	//////////////////////////////
 	
-	
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Combat")
+	float Health;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Combat")
+	float MaxHealth;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Combat")
+	float Damage;
+
+
 	//////////////////////////////
 	/****      Enemy AI      ****/
 	//////////////////////////////
@@ -127,11 +147,5 @@ public:
 	virtual void CombatSphereOverlapBegin(UPrimitiveComponent* OverlappedComponent, AActor* OtherActor, UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult);
 	UFUNCTION()
 	virtual void CombatSphereOverlapEnd(UPrimitiveComponent* OverlappedComponent, AActor* OtherActor, UPrimitiveComponent* OtherComp, int32 OtherBodyIndex);
-
-
-
-	//////////////////////////////
-	/****   Enemy Combat     ****/
-	//////////////////////////////
 
 };

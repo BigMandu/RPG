@@ -30,7 +30,7 @@ AEnemy::AEnemy()
 	CombatSphere->InitSphereRadius(80.f);
 
 	//정찰범위 디폴트로 500 설정. BTTask_SearchPatrolLocation에서 사용.
-	PatrolArea = 500.f; 	
+	PatrolArea = 500.f;
 
 	//움직임
 	GetCharacterMovement()->bOrientRotationToMovement = true;
@@ -46,6 +46,10 @@ AEnemy::AEnemy()
 	//Combat 관련 
 	NumberOfCombatAnim = 3; //CombatMontage Animation 개수 디폴트값 지정
 	bAttacking = false;
+	
+	MaxHealth = 100.f;
+	Health = 100.f;
+	Damage = 10.f;
 
 	/*
 	//////////AI TEST/////////

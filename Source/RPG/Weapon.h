@@ -31,9 +31,9 @@ public:
 	UPROPERTY(VisibleAnywhere, BlueprintReadWrite, Category = "SkeletalMesh")
 	class USkeletalMeshComponent* SkeletalMesh;
 
-	virtual void OnOverlapBegin(UPrimitiveComponent* OverlappedComponent, AActor* OtherActor, UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult) override;
-	virtual void OnOverlapEnd(UPrimitiveComponent* OverlappedComponent, AActor* OtherActor, UPrimitiveComponent* OtherComp, int32 OtherBodyIndex) override;
-
+	UPROPERTY(VisibleAnywhere, BlueprintReadWrite, Category = "Item | Combat")
+	class UBoxComponent* CombatCollision;
+	
 	//EquipSound
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Item | Sound")
 	class USoundCue* EquipedSound;
@@ -42,15 +42,61 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Item | Particle")
 	bool bIdleParticle;
 
-	//equip function
-	void Equip(class AMainCharacter* MainChar);
+protected:
+	// Called when the game starts or when spawned
+	virtual void BeginPlay() override;
+
+public:
+
+	virtual void PostInitializeComponents() override;
+
+	/**********************************/
+	// Weapon Overlap, Collision 관련 //
+	/**********************************/
+	//무기의 기본 Sphere Collision. (장착 범위등)
+	virtual void OnOverlapBegin(UPrimitiveComponent* OverlappedComponent, AActor* OtherActor, UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult) override;
+	virtual void OnOverlapEnd(UPrimitiveComponent* OverlappedComponent, AActor* OtherActor, UPrimitiveComponent* OtherComp, int32 OtherBodyIndex) override;
+
+	UFUNCTION(BlueprintCallable)
+	void ActivateCollision(); //Collision을 활성화.
+
+	UFUNCTION(BlueprintCallable)
+	void DeactivateCollision(); //Collision을 비활성화.
+
+	//Collision이 활성화 된 후 Enemy를 쳤을때
+	UFUNCTION()
+	void CombatCollisionOverlapBegin(UPrimitiveComponent* OverlappedComponent, AActor* OtherActor, UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult);
+	
+	//Collision이 활성화 된 후 Enemy를 치고 난 뒤
+	UFUNCTION()
+	void CombatCollisionOverlapEnd(UPrimitiveComponent* OverlappedComponent, AActor* OtherActor, UPrimitiveComponent* OtherComp, int32 OtherBodyIndex);
+
+
+	//이 무기를 갖고있는 Player를 가져온다.
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Item")
+	class AMainCharacter* WeaponOwner;
+
+	FORCEINLINE void SetWeaponOwner(class AMainCharacter* MainChar) { WeaponOwner = MainChar; }
+	FORCEINLINE AMainCharacter* GetWeaponOwner() { return WeaponOwner; }
+
+	/*******************************/
+	//---      Weapon Stats    ---//
+	/*******************************/
+	UPROPERTY(VisibleAnywhere, BlueprintReadWrite, Category = "Item | Stats")
+	float WeaponDamage;
 
 	/*******************************/
 	//---      Weapon State     ---//
 	/*******************************/
+	//equip function
+	void Equip(class AMainCharacter* MainChar);
+
 	UPROPERTY(VisibleAnywhere, BlueprintReadWrite, Category = "Item")
 	EWeaponState WeaponState;
 
 	FORCEINLINE void SetWeaponState(EWeaponState Status) { WeaponState = Status; }
 	FORCEINLINE EWeaponState GetWeaponState() { return WeaponState; }
+	
+	
+
 };

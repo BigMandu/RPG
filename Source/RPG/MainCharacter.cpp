@@ -3,6 +3,7 @@
 
 #include "MainCharacter.h"
 #include "Weapon.h"
+#include "Enemy.h"
 #include "Camera/CameraComponent.h"
 #include "GameFramework/SpringArmComponent.h"
 #include "GameFramework/CharacterMovementComponent.h"
@@ -88,6 +89,8 @@ AMainCharacter::AMainCharacter()
 	Health = 100.f;
 	MaxStamina = 300.f;
 	Stamina = 300.f;
+	
+	PlayerDamage = 20.f;
 
 	Coins = 0;
 	Souls = 0;
@@ -460,14 +463,24 @@ void AMainCharacter::SetEquippedWeapon(AWeapon* WeaponToSet)
 {
 	if (EquippedWeapon) //기존 장착된게 있으면
 	{
-		EquippedWeapon->Destroy(); //destory하고 장착.
+		EquippedWeapon->Destroy(); //destory하고 장착, 나중에 Inventory에 넣어주자.
 	}
 	EquippedWeapon = WeaponToSet;
+	EquippedWeapon->SetWeaponOwner(this);
 }
 
 /************ Combat **************/
 ///////// Combat 관련 함수 /////
 /*********************************/
+void AMainCharacter::AttackDamage(AEnemy* DamagedEnemy, float WeaponDamage) //공격후 Damage를 줌.
+{
+	UGameplayStatics::ApplyDamage(DamagedEnemy, PlayerDamage + WeaponDamage, GetController(), this, DamageTypeClass);
+		
+	UE_LOG(LogTemp, Warning, TEXT("MainPlayer->AttackDamage()"));
+	UE_LOG(LogTemp, Warning, TEXT("Player Base Damage is : %f, EquippedWeapon Damage is : %f"), PlayerDamage, WeaponDamage);
+	UE_LOG(LogTemp, Warning, TEXT("Total Damage is : %f"), PlayerDamage + WeaponDamage);
+}
+
 void AMainCharacter::Attack()
 {
 	bool fall = GetCharacterMovement()->IsFalling();
