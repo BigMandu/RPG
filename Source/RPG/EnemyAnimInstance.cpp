@@ -36,3 +36,17 @@ void UEnemyAnimInstance::UpdateAnimation()
 		MovementSpeed = LiteralSpeed.Size();
 	}
 }
+
+
+void UEnemyAnimInstance::AnimNotify_RangeAttack()
+{
+	UE_LOG(LogTemp, Warning, TEXT("EnemyAnimInstance::Range Attack Notify Received!!"));
+	RangeAttack.Broadcast();
+}
+
+
+void UEnemyAnimInstance::AnimNotify_AttackEnd()
+{
+	UE_LOG(LogTemp, Warning, TEXT("EnemyAnimInstance::AttackEnd Notify Received!!"));
+	AttackEnd.Broadcast();
+}

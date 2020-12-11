@@ -20,6 +20,16 @@ enum class EEnemyMovementStatus : uint8
 	EMS_MAX			UMETA(DisplayName = "DefaultMAX")
 };
 
+UENUM(BlueprintType)
+enum class EEnemyType : uint8
+{
+	ET_Creature		UMETA(DisplayName = "Creature"),
+	ET_Humanoid		UMETA(DisplayName = "Humanoid"),
+	ET_Boss			UMETA(DisplayName = "Boss"),
+
+	ET_MAX			UMETA(DisplayName = "DefaultMAX")
+};
+
 
 
 UCLASS()
@@ -39,6 +49,15 @@ public:
 	FORCEINLINE void SetEnemyMovementStatus(EEnemyMovementStatus EnemyStatus) { EnemyMovementStatus = EnemyStatus; }
 	///////////////////////////////
 
+
+	//////////   Enemy Type   ///////////
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Type")
+	EEnemyType EnemyType;
+
+	FORCEINLINE EEnemyType GetEnemyType() { return EnemyType; }
+
+	///////////////////////////
+	
 	UPROPERTY(EditAnywhere,BlueprintReadWrite, Category = "Particles")
 	class UParticleSystem* HitParticle;
 
@@ -48,6 +67,8 @@ public:
 	//////////////////////////////
 	/****      Enemy Stats   ****/
 	//////////////////////////////
+
+	
 	
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Combat")
 	float Health;
@@ -57,6 +78,12 @@ public:
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Combat")
 	float Damage;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Combat")
+	float AttackRange;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Combat")
+	float AttackRadius;
 
 
 	//////////////////////////////
@@ -77,11 +104,12 @@ public:
 	float PatrolArea; //정찰 범위 BTTask_SearchPatrolLocation에서 사용함.
 
 
+
 	//////////////////////////////
 	/****    Enemy Combat    ****/
 	//////////////////////////////
 	
-	class UAnimInstance* AnimInstance;
+	class UEnemyAnimInstance* AnimInstance;
 
 	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite, Category = "Combat")
 	class UAnimMontage* CloseCombatMontage;
@@ -90,16 +118,30 @@ public:
 	class UAnimMontage* DashAttackCombatMontage;
 
 	UFUNCTION()
-	void Attack(UBlackboardComponent* BBComp);
+	void AttackGiveDamage();
+
+	bool ReturnHit();
+	bool bWasHit;
+
+	virtual float TakeDamage(float DamageAmount, struct FDamageEvent const& DamageEvent, class AController* EventInstigator, AActor* DamageCauser) override;
+
+	void Die();
 
 	UFUNCTION()
-	void OnCombatMontageEnded(UAnimMontage* Montage, bool bInterrupted); //OnMontageEnded delegate와 연결할 함수.
+	void Attack(UBlackboardComponent* BBComp);
+
+	//UFUNCTION()
+	//void OnCombatMontageEnded(UAnimMontage* Montage, bool bInterrupted); //OnMontageEnded delegate와 연결할 함수.
+
+	UFUNCTION()
+	void AttackEnd();
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Combat")
 	bool bAttacking;
 
 	FTimerHandle DashAttackHandle; //DashAttack때 사용할 TimerHandle
 
+	TSubclassOf<UDamageType>DamageTypeClass;
 	
 	
 	UFUNCTION()

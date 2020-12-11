@@ -4,11 +4,16 @@
 #include "Enemy.h"
 #include "EnemyAIController.h"
 #include "MainCharacter.h"
+#include "EnemyAnimInstance.h"
+#include "DrawDebugHelpers.h"
 #include "GameFramework/CharacterMovementComponent.h"
 #include "Components/SphereComponent.h"
 #include "Kismet/KismetSystemLibrary.h"
+#include "Kismet/GameplayStatics.h"
 #include "NavigationSystem.h"
 #include "BehaviorTree/BlackboardComponent.h"
+
+
 /*
 #include "Perception/AIPerceptionComponent.h"
 #include "Perception/AISenseConfig.h"
@@ -50,6 +55,8 @@ AEnemy::AEnemy()
 	MaxHealth = 100.f;
 	Health = 100.f;
 	Damage = 10.f;
+	AttackRange = 100.f;
+	AttackRadius = 50.f;
 
 	/*
 	//////////AI TEST/////////
@@ -63,14 +70,21 @@ AEnemy::AEnemy()
 void AEnemy::PostInitializeComponents()
 {
 	Super::PostInitializeComponents();
-	AnimInstance = GetMesh()->GetAnimInstance();
+	AnimInstance = Cast<UEnemyAnimInstance>(GetMesh()->GetAnimInstance());
+	check(AnimInstance != nullptr);
 
 	AgroSphere->OnComponentBeginOverlap.AddDynamic(this, &AEnemy::AgroSphereOverlapBegin);
 	AgroSphere->OnComponentEndOverlap.AddDynamic(this, &AEnemy::AgroSphereOverlapEnd);
 	CombatSphere->OnComponentBeginOverlap.AddDynamic(this, &AEnemy::CombatSphereOverlapBegin);
 	CombatSphere->OnComponentEndOverlap.AddDynamic(this, &AEnemy::CombatSphereOverlapEnd);
 
-	AnimInstance->OnMontageEnded.AddDynamic(this, &AEnemy::OnCombatMontageEnded);
+	//AnimInstance->OnMontageEnded.AddDynamic(this, &AEnemy::OnCombatMontageEnded);
+	AnimInstance->RangeAttack.AddUObject(this, &AEnemy::AttackGiveDamage);
+	AnimInstance->AttackEnd.AddUObject(this, &AEnemy::AttackEnd);
+
+
+	AttackRange = CombatSphere->GetScaledSphereRadius() * 1.25f;
+	AttackRadius = 45.f;
 }
 
 // Called when the game starts or when spawned
@@ -201,8 +215,10 @@ void AEnemy::SetupPlayerInputComponent(UInputComponent* PlayerInputComponent)
 
 }
 
+
+
 	//////////////////////////////
-	/****      Enemy AI      ****/
+	/****    Enemy Combat    ****/
 	//////////////////////////////
 /*
 void AEnemy::Chase(class AMainCharacter* Target)
@@ -277,6 +293,75 @@ void AEnemy::CombatSphereOverlapEnd(UPrimitiveComponent* OverlappedComponent, AA
 	}
 }
 
+bool AEnemy::ReturnHit() //AnimNotifyState_RangeAttack()에서 호출함.
+{
+	if (bWasHit == true)
+	{
+		UE_LOG(LogTemp, Warning, TEXT("Enemy::ReturnHit() return True"));
+		return true;
+	}
+	
+	AttackGiveDamage();
+	UE_LOG(LogTemp, Warning, TEXT("Enemy::ReturnHit() return False"));
+	return false;
+}
+
+void AEnemy::AttackGiveDamage()
+{
+	UE_LOG(LogTemp, Warning, TEXT("Enemy::AttackGiveDamage Function called!"));
+
+	FHitResult HitResult;
+	FVector StartVec = GetActorLocation();
+	FVector EndVec = GetActorForwardVector() * AttackRange + StartVec;
+	FCollisionQueryParams QueryParam(FName(TEXT("AttackTraceSingle")), false, this);
+
+	bool bHit = GetWorld()->SweepSingleByChannel(HitResult, StartVec, EndVec, FQuat::Identity, ECollisionChannel::ECC_GameTraceChannel1,
+		FCollisionShape::MakeSphere(AttackRadius), QueryParam);
+
+	/*디버깅용*/
+	FColor Color = bHit ? FColor::Green : FColor::Red;
+	DrawDebugCapsule(GetWorld(), GetActorLocation() + GetActorForwardVector() * AttackRange * 0.5,
+		AttackRange * 0.5 + AttackRadius, AttackRadius, FRotationMatrix::MakeFromZ(GetActorForwardVector() * AttackRange).ToQuat(),
+		Color, false, 2.0f);
+
+	if (bHit)
+	{
+		if (HitResult.Actor.IsValid())
+		{
+			UE_LOG(LogTemp, Warning, TEXT(" Hit Actor name is : %s"), *HitResult.GetActor()->GetName());
+
+			AMainCharacter* Main = Cast<AMainCharacter>(HitResult.GetActor());
+			if (Main)
+			{
+				UGameplayStatics::ApplyDamage(Main, Damage, GetController(), this, DamageTypeClass);
+				UE_LOG(LogTemp, Warning, TEXT("Enemy::ApplyDamage"));
+				UE_LOG(LogTemp, Warning, TEXT("Damage : %f"), Damage);
+			}
+		}
+		bWasHit = true;
+	}
+}
+
+float AEnemy::TakeDamage(float DamageAmount, struct FDamageEvent const& DamageEvent, class AController* EventInstigator, AActor* DamageCauser)
+{
+	if (Health - DamageAmount <= 0.f)
+	{
+		UE_LOG(LogTemp, Warning, TEXT("Enemy::TakeDamage()::call Die()!!:::::Damage Causer : %s , Damage : %f"), *DamageCauser->GetName(), DamageAmount);
+		Die();
+	}
+	else
+	{
+		UE_LOG(LogTemp, Warning, TEXT("Enemy::TakeDamage()::::Damage Causer : %s , Damage : %f"), *DamageCauser->GetName(), DamageAmount);
+		Health -= DamageAmount;
+	}
+	return DamageAmount;
+}
+
+void AEnemy::Die()
+{
+	Health = 0;
+	UE_LOG(LogTemp, Warning, TEXT("Enemy::Die()"));
+}
 
 void AEnemy::Attack(UBlackboardComponent* BBComp)
 {	
@@ -332,6 +417,7 @@ void AEnemy::Attack(UBlackboardComponent* BBComp)
 				{
 					if (FName("Dash") == AnimInstance->Montage_GetCurrentSection(DashAttackCombatMontage))
 					{
+						RotateToTarget(); //대쉬중 회전도 가능하게 한번 넣어봤다.
 						//bAttacking = true;
 						FAIMoveRequest MoveReq;
 						MoveReq.SetGoalLocation(DashVector + CurrentVector);
@@ -347,9 +433,20 @@ void AEnemy::Attack(UBlackboardComponent* BBComp)
 
 //공격 모션이 끝나면, OnMontageEnded가 호출되는데, 이때 delegate로 bind한 이 함수도 호출되면서
 //bAttacking을 false시켜줌.
-void AEnemy::OnCombatMontageEnded(UAnimMontage* Montage, bool bInterrupted)
+//void AEnemy::OnCombatMontageEnded(UAnimMontage* Montage, bool bInterrupted)
+//{
+//	bAttacking = false;
+//	if (DashAttackHandle.IsValid())
+//	{
+//		GetWorldTimerManager().ClearTimer(DashAttackHandle);
+//	}
+//}
+
+void AEnemy::AttackEnd()
 {
+	UE_LOG(LogTemp, Warning, TEXT("Delegate:: Enemy:: Attack End Function call"));
 	bAttacking = false;
+	bWasHit = false; //ReturnHit()에서 사용함.
 	if (DashAttackHandle.IsValid())
 	{
 		GetWorldTimerManager().ClearTimer(DashAttackHandle);

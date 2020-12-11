@@ -15,6 +15,7 @@
 #include "Perception/AISense.h"
 #include "Components/TimelineComponent.h"
 #include "Components/CapsuleComponent.h"
+#include "Components/BoxComponent.h"
 
 // Sets default values
 AMainCharacter::AMainCharacter()
@@ -443,6 +444,35 @@ void AMainCharacter::IncrementCoin(int32 Amount)
 /*************** Damage ****************/
 //////////   Damage 관련 함수   /////////
 /***************************************/
+void AMainCharacter::AttackGiveDamage(AEnemy* DamagedEnemy, float WeaponDamage) //공격후 Damage를 줌.
+{
+	
+	UGameplayStatics::ApplyDamage(DamagedEnemy, PlayerDamage + WeaponDamage, GetController(), this, DamageTypeClass);
+
+	UE_LOG(LogTemp, Warning, TEXT("MainPlayer->AttackDamage()"));
+	UE_LOG(LogTemp, Warning, TEXT("Player Base Damage is : %f, EquippedWeapon Damage is : %f"), PlayerDamage, WeaponDamage);
+	UE_LOG(LogTemp, Warning, TEXT("Total Damage is : %f"), PlayerDamage + WeaponDamage);
+}
+
+
+void AMainCharacter::AttackRangeDamage() //Player의 범위 공격 (스킬 같은것.)
+{
+	UE_LOG(LogTemp, Warning, TEXT("MainCharacter::AttackRangeDamage()"));
+
+	/*TArray<FHitResult>OutHit;
+	FVector WeaponCombatCollision = EquippedWeapon->CombatCollision->*/
+
+	bool bHit = GetWorld()->SweepMultiByChannel(OutHit,)
+}
+
+float AMainCharacter::TakeDamage(float DamageAmount, struct FDamageEvent const& DamageEvent, class AController* EventInstigator, AActor* DamageCauser)
+{
+	UE_LOG(LogTemp, Warning, TEXT("MainCharacter::TakeDamage()::::Damage Causer : %s , Damage : %f"), *DamageCauser->GetName(), DamageAmount);
+	DecrementHealth(DamageAmount);
+	return DamageAmount;
+}
+
+
 void AMainCharacter::DecrementHealth(float Amount)
 {
 	if (Health - Amount <= 0.f)
@@ -453,7 +483,8 @@ void AMainCharacter::DecrementHealth(float Amount)
 }
 void AMainCharacter::Die()
 {
-
+	Health = 0;
+	UE_LOG(LogTemp, Warning, TEXT("AMainCharacter::Die()"));
 }
 
 /************ Weapon **************/
@@ -472,14 +503,6 @@ void AMainCharacter::SetEquippedWeapon(AWeapon* WeaponToSet)
 /************ Combat **************/
 ///////// Combat 관련 함수 /////
 /*********************************/
-void AMainCharacter::AttackDamage(AEnemy* DamagedEnemy, float WeaponDamage) //공격후 Damage를 줌.
-{
-	UGameplayStatics::ApplyDamage(DamagedEnemy, PlayerDamage + WeaponDamage, GetController(), this, DamageTypeClass);
-		
-	UE_LOG(LogTemp, Warning, TEXT("MainPlayer->AttackDamage()"));
-	UE_LOG(LogTemp, Warning, TEXT("Player Base Damage is : %f, EquippedWeapon Damage is : %f"), PlayerDamage, WeaponDamage);
-	UE_LOG(LogTemp, Warning, TEXT("Total Damage is : %f"), PlayerDamage + WeaponDamage);
-}
 
 void AMainCharacter::Attack()
 {

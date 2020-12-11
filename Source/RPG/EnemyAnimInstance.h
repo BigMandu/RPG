@@ -6,6 +6,8 @@
 #include "Animation/AnimInstance.h"
 #include "EnemyAnimInstance.generated.h"
 
+DECLARE_MULTICAST_DELEGATE(FRangeAttackDelegate);
+DECLARE_MULTICAST_DELEGATE(FAttackEndDelegate);
 /**
  * 
  */
@@ -18,6 +20,14 @@ public:
 
 	UFUNCTION(BlueprintCallable, Category = "AnimationProperties")
 	void UpdateAnimation();
+
+	UFUNCTION()
+	void AnimNotify_RangeAttack(); //AnimNotify가 실행되고, Multi Delegate에 연결된 함수들을 호출하기 위해서
+	UFUNCTION()
+	void AnimNotify_AttackEnd();
+
+	FRangeAttackDelegate RangeAttack; //이 함수유형을 AnimNotify_RangeAttack함수가 호출될때 전부 호출시킬거다.
+	FAttackEndDelegate AttackEnd;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Movement")
 	float MovementSpeed;

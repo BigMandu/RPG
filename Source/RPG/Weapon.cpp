@@ -7,6 +7,7 @@
 #include "Engine/SkeletalMeshSocket.h"
 #include "Components/SkeletalMeshComponent.h"
 #include "Components/BoxComponent.h"
+#include "Components/SphereComponent.h"
 #include "Kismet/GameplayStatics.h"
 #include "Sound/SoundCue.h"
 #include "Particles/ParticleSystemComponent.h"
@@ -92,6 +93,8 @@ void AWeapon::Equip(class AMainCharacter* MainChar)
 		//Camera를 무시하도록 설정
 		SkeletalMesh->SetCollisionResponseToChannel(ECollisionChannel::ECC_Camera, ECollisionResponse::ECR_Ignore);
 		SkeletalMesh->SetSimulatePhysics(false); //Main Character와 Attach시켜주기 위해 physics를 끔.
+		CollisionVolume->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+
 		const USkeletalMeshSocket* RightWeaponSocket = MainChar->GetMesh()->GetSocketByName("hand_r_weapon");
 
 		if (RightWeaponSocket)
@@ -117,23 +120,32 @@ void AWeapon::CombatCollisionOverlapBegin(UPrimitiveComponent* OverlappedCompone
 {
 	if (OtherActor)
 	{
-		if (SweepResult.Actor.IsValid())
+		if (SweepResult.Actor.IsValid()) 
 		{
 			AEnemy* Enemy = Cast<AEnemy>(OtherActor);
 			AMainCharacter* MainChar = GetWeaponOwner();
-			if (Enemy && MainChar)
+			if (Enemy && MainChar) 
 			{
 				UE_LOG(LogTemp, Warning, TEXT("Weapon::Overlap Actor is Enemy"));
 				if (Enemy->HitParticle)
 				{
-					FVector HitLocation = SweepResult.ImpactPoint;
-					UGameplayStatics::SpawnEmitterAtLocation(GetWorld(), Enemy->HitParticle, HitLocation);
+					FVector HitLocation = SweepResult.ImpactPoint; //지금 안됨. 
+					/*
+					UE_LOG(LogTemp, Warning, TEXT("Enemy World location is : %s"), *Enemy->GetActorLocation().ToString());
+					UE_LOG(LogTemp, Warning, TEXT("Hit Actor Name is : %s"), *SweepResult.GetActor()->GetFName().ToString());
+					UE_LOG(LogTemp, Warning, TEXT("Hit Bone Name is : %s"), *SweepResult.BoneName.ToString());
+					UE_LOG(LogTemp, Warning, TEXT("Impact Point is : %s"), *HitLocation.ToString());
+					UE_LOG(LogTemp, Warning, TEXT("Impact Normal is : %s"), *SweepResult.ImpactNormal.ToString());
+					UE_LOG(LogTemp, Warning, TEXT("Location is : %s"), *SweepResult.Location.ToString());
+					UE_LOG(LogTemp, Warning, TEXT("Normal is : %s"), *SweepResult.Normal.ToString());
+					*/
+					UGameplayStatics::SpawnEmitterAtLocation(GetWorld(), Enemy->HitParticle, HitLocation); 
 				}
 				if (Enemy->HitSound)
 				{
 					UGameplayStatics::PlaySound2D(this, Enemy->HitSound);
 				}
-				MainChar->AttackDamage(Enemy, WeaponDamage);
+				MainChar->AttackGiveDamage(Enemy, WeaponDamage);
 			}
 		}
 	}
