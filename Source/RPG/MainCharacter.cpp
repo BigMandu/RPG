@@ -444,6 +444,8 @@ void AMainCharacter::IncrementCoin(int32 Amount)
 /*************** Damage ****************/
 //////////   Damage 관련 함수   /////////
 /***************************************/
+
+//무기를 이용한 공격, Weapon Class에서 호출함.
 void AMainCharacter::AttackGiveDamage(AEnemy* DamagedEnemy, float WeaponDamage) //공격후 Damage를 줌.
 {
 	
@@ -454,15 +456,54 @@ void AMainCharacter::AttackGiveDamage(AEnemy* DamagedEnemy, float WeaponDamage) 
 	UE_LOG(LogTemp, Warning, TEXT("Total Damage is : %f"), PlayerDamage + WeaponDamage);
 }
 
-
+//범위공격, AnimNotifyState_RangeAttack에서 호출함( 애님 노티파이 스테이트)
 void AMainCharacter::AttackRangeDamage() //Player의 범위 공격 (스킬 같은것.)
 {
 	UE_LOG(LogTemp, Warning, TEXT("MainCharacter::AttackRangeDamage()"));
 
-	/*TArray<FHitResult>OutHit;
-	FVector WeaponCombatCollision = EquippedWeapon->CombatCollision->*/
+	FCollisionQueryParams Params(FName(TEXT("PlayerRangeDamage")), false, this);
+	TArray<FHitResult>OutHit;
+	FVector StartLocation = GetActorLocation(); //StartLocation
+	FVector WeaponLength = EquippedWeapon->CombatCollision->GetScaledBoxExtent() * 2.0f;
 
-	bool bHit = GetWorld()->SweepMultiByChannel(OutHit,)
+	FVector EndLocation = GetActorForwardVector() * WeaponLength.Z + StartLocation;
+
+	GetWorld()->SweepMultiByChannel(OutHit, StartLocation, EndLocation, FQuat::Identity, 
+		ECollisionChannel::ECC_Pawn, FCollisionShape::MakeCapsule(WeaponLength), Params);
+	
+	
+	float Damage = PlayerDamage;
+
+	if (GetCharacterMovement()->IsFalling())
+	{
+		Damage += CurHeight * 0.2f;
+	}
+
+	float ZSize = WeaponLength.Z;
+	float YSize = WeaponLength.Y;
+	float XSize = WeaponLength.X;
+
+	UE_LOG(LogTemp, Warning, TEXT("Endlocation : %s / /2 : %s"), *EndLocation.ToString(), *(EndLocation*0.5).ToString());
+
+	DrawDebugCapsule(GetWorld(), EndLocation,
+		ZSize* 0.5 + XSize + YSize, XSize+YSize, FRotationMatrix::MakeFromZ(GetActorForwardVector() * ZSize).ToQuat(),
+		FColor::Red, false, 2.0f);
+
+	if (OutHit.Num() == 0) return;
+
+	for (auto Hit : OutHit)
+	{
+		AEnemy* Enemy = Cast<AEnemy>(Hit.GetActor());
+		if (Enemy)
+		{
+			DrawDebugCapsule(GetWorld(), EndLocation,
+				ZSize * 0.5 + XSize + YSize, XSize + YSize, FRotationMatrix::MakeFromZ(GetActorForwardVector() * ZSize).ToQuat(),
+				FColor::Green, false, 2.0f);
+			UE_LOG(LogTemp, Warning, TEXT("Player Range Attack success, Damage is : %f, Weapon Damage is : %f, TotalDamage is : %f"), Damage, EquippedWeapon->WeaponDamage, Damage + EquippedWeapon->WeaponDamage);
+			UGameplayStatics::ApplyDamage(Enemy, Damage + EquippedWeapon->WeaponDamage, GetController(), this, DamageTypeClass);
+		}
+	}
+	
 }
 
 float AMainCharacter::TakeDamage(float DamageAmount, struct FDamageEvent const& DamageEvent, class AController* EventInstigator, AActor* DamageCauser)

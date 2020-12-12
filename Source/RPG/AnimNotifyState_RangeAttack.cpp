@@ -35,8 +35,7 @@ void UAnimNotifyState_RangeAttack::NotifyTick(USkeletalMeshComponent* MeshComp, 
 		
 		if (Enemy->ReturnHit())
 		{
-			UE_LOG(LogTemp, Warning, TEXT("Enemy::Hit success"));
-			
+			//UE_LOG(LogTemp, Warning, TEXT("Enemy::Hit success"));
 			return;
 		}
 	}

@@ -297,12 +297,12 @@ bool AEnemy::ReturnHit() //AnimNotifyState_RangeAttack()에서 호출함.
 {
 	if (bWasHit == true)
 	{
-		UE_LOG(LogTemp, Warning, TEXT("Enemy::ReturnHit() return True"));
+		//UE_LOG(LogTemp, Warning, TEXT("Enemy::ReturnHit() return True"));
 		return true;
 	}
 	
 	AttackGiveDamage();
-	UE_LOG(LogTemp, Warning, TEXT("Enemy::ReturnHit() return False"));
+	//UE_LOG(LogTemp, Warning, TEXT("Enemy::ReturnHit() return False"));
 	return false;
 }
 
