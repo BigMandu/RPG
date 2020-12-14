@@ -137,6 +137,12 @@ public:
 
 	float CurHeight;
 
+	FTimerHandle FallingTimer; //낙하 데미지 타이머
+
+	float FallingDamage;
+	float FallingMaxHeight;
+//	bool bFell;
+
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Combat")
 	bool bAttacking;
 
@@ -190,9 +196,6 @@ public:
 	void SetMovementStatus(EMovementStatus Status);
 	FORCEINLINE void SetStaminaStatus(EStaminaStatus Status) { StaminaStatus = Status; }
 
-	////Damage관련 함수////
-	void DecrementHealth(float Amount);
-	void Die();
 
 	////Coin, Soul function////
 	void IncrementCoin(int32 Amount);
@@ -215,9 +218,18 @@ public:
 	/*******************************/
 	//---     Player Combat     ---//
 	/*******************************/
+
+	
+	void DecrementHealth(float Amount);
+	void Die();
+
 	void AttackGiveDamage(class AEnemy* DamagedEnemy, float WeaponDamage);
 
 	void AttackRangeDamage();
+
+	void FallingDamageCalc();
+
+	void TakeFallingDamage();
 
 	virtual float TakeDamage(float DamageAmount, struct FDamageEvent const& DamageEvent, class AController* EventInstigator, AActor* DamageCauser) override;
 

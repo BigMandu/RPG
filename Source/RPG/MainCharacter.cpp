@@ -81,7 +81,10 @@ AMainCharacter::AMainCharacter()
 	StaminaDrainRate = 70.f;
 	MinStamina = 75.f;
 
-	
+	//낙하 데미지 관련//
+	FallingDamage = 0.f;
+	FallingMaxHeight = 0.f;
+	//bFell = false;
 
 	/*******************************/
 	//***** Character Stats *****//
@@ -157,6 +160,18 @@ void AMainCharacter::Tick(float DeltaTime)
 			}
 		}
 	}
+
+
+	//낙하 데미지
+	if (GetCharacterMovement()->IsFalling()) //공중에서 떨어질때 Damage를 계산 및 적용.
+	{
+		FallingDamageCalc();
+	}
+	else if (GetCharacterMovement()->IsFalling() == false)// && GetWorldTimerManager().IsTimerActive(FallingTimer)) //떨어졌고, FallingTimer가 작동중일때만
+	{
+		TakeFallingDamage();
+	}
+
 	//StaminaStatus 관리.
 	switch (StaminaStatus)
 	{
@@ -468,15 +483,16 @@ void AMainCharacter::AttackRangeDamage() //Player의 범위 공격 (스킬 같은것.)
 
 	FVector EndLocation = GetActorForwardVector() * WeaponLength.Z + StartLocation;
 
+	//Weapon의 CombatCollision * 2 크기를 가진 캡슐모양으로 판정한다.
 	GetWorld()->SweepMultiByChannel(OutHit, StartLocation, EndLocation, FQuat::Identity, 
 		ECollisionChannel::ECC_Pawn, FCollisionShape::MakeCapsule(WeaponLength), Params);
 	
 	
 	float Damage = PlayerDamage;
 
-	if (GetCharacterMovement()->IsFalling())
+	if (GetCharacterMovement()->IsFalling()) //떨어지고 있으면, 낙하높이에 15%의 데미지를 더 줌.
 	{
-		Damage += CurHeight * 0.2f;
+		Damage += CurHeight * 0.15f;
 	}
 
 	float ZSize = WeaponLength.Z;
@@ -485,9 +501,12 @@ void AMainCharacter::AttackRangeDamage() //Player의 범위 공격 (스킬 같은것.)
 
 	UE_LOG(LogTemp, Warning, TEXT("Endlocation : %s / /2 : %s"), *EndLocation.ToString(), *(EndLocation*0.5).ToString());
 
+
+	//디버깅용
 	DrawDebugCapsule(GetWorld(), EndLocation,
 		ZSize* 0.5 + XSize + YSize, XSize+YSize, FRotationMatrix::MakeFromZ(GetActorForwardVector() * ZSize).ToQuat(),
 		FColor::Red, false, 2.0f);
+
 
 	if (OutHit.Num() == 0) return;
 
@@ -504,6 +523,43 @@ void AMainCharacter::AttackRangeDamage() //Player의 범위 공격 (스킬 같은것.)
 		}
 	}
 	
+}
+
+
+void AMainCharacter::FallingDamageCalc() //낙하 데미지.
+{
+	//떨어지는 동안 최대높이를 구한다.
+	//FallingMaxHeight = CurHeight;
+	//UE_LOG(LogTemp, Warning, TEXT("FallingDamageCalc() : MaxHeight is : %f"), FallingMaxHeight);
+	//GetWorldTimerManager().SetTimer(FallingTimer, [this] 
+		{
+			//if (CurHeight >= GetDefaultHalfHeight() * 2.5f)
+			if (FallingMaxHeight < CurHeight)
+			{
+				FallingMaxHeight = CurHeight;
+			}
+			//
+		}//, GetWorld()->GetDeltaSeconds(), true);
+
+	
+}
+
+void AMainCharacter::TakeFallingDamage()
+{
+	//떨어지고 착지 이후에 데미지 계산, 적용 및 초기화를 해준다.
+	
+	if (FallingMaxHeight >= GetDefaultHalfHeight() * 3.f) //자기키의  1.5배가 되면 낙하데미지를 받는다.
+	{
+		FallingDamage = FallingMaxHeight * 0.05f; //높이에서 5%를 데미지로 준다.
+		DecrementHealth(FallingDamage);
+		UE_LOG(LogTemp, Warning, TEXT("Falling Max Height is :%f, Falling Damage is : %f"), FallingMaxHeight, FallingDamage);
+	}
+	//관련 변수 초기화.
+	//UE_LOG(LogTemp, Warning, TEXT("Initialize Timer, Falling Variable "));
+	//GetWorldTimerManager().ClearTimer(FallingTimer);
+	FallingDamage = 0.f;
+	FallingMaxHeight = 0.f;
+
 }
 
 float AMainCharacter::TakeDamage(float DamageAmount, struct FDamageEvent const& DamageEvent, class AController* EventInstigator, AActor* DamageCauser)
