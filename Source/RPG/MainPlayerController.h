@@ -23,6 +23,28 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Widgets)
 	UUserWidget* HUDOverlay; //위의 항목에서 이것을 선택할 수 있게 한다.
 
+
+
+	//Enemy HealthBar
+
+	//UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Widgets)
+	//TSubclassOf<UUserWidget> WEnemyHealthBar;
+
+	//UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Widgets)
+	//UUserWidget* EnemyHealthBar;
+	//
+	//FVector EnemyLocation;
+
+	//UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = Widgets)
+	//bool bEnemyHealthBarVisible;
+
+	//void ShowEnemyHealthBar();
+	//void HideEnemyHealthBar();
+	/////////////////////////////
+
+	virtual void Tick(float DeltaTime) override;
+protected:
 	//Begin play시 HUD를 띄워야함.
 	virtual void BeginPlay() override; //다른 클래스처럼 맞춰준다.
+	
 };

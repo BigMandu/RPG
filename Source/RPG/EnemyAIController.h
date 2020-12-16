@@ -61,6 +61,7 @@ public:
 	const FName CanAttackKey = FName("CanAttack");
 	const FName CanDashAttackKey = FName("CanDashAttack");
 	const FName EnumUpdateKey = FName("EnumStatusKey");
+	const FName HasDamageUpdateKey = FName("HasDamage");
 	
 
 protected:
@@ -71,17 +72,6 @@ public:
 
 	virtual void Tick(float DeltaTime) override;
 
-
-	//void MoveToRandomLocation();
-
-
-	/******** ACT Function********/
-	/*
-	UFUNCTION()
-	void Chase(class AActor* Chaser, class AMainCharacter* Target);
-
-	void SearchAndMove(FVector LastLocation, FVector TargetLocation);
-	*/
 
 	/***************************************/
 	//////////// AI Perception //////////////
@@ -103,4 +93,5 @@ public:
 	void UpdateCanAttack(bool CanAttack);
 	void UpdateCanDashAttack(bool CanDashAttack);
 	void UpdateEnumMovementStatus(EEnemyMovementStatus MovementStatus);
+	void UpdateHasDamage(bool HasDamage);
 };

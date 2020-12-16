@@ -37,7 +37,8 @@ class RPG_API AMainCharacter : public ACharacter
 public:
 	// Sets default values for this character's properties
 	AMainCharacter();
-	
+
+
 	/////////////////AI TEST ////////////////
 	class UAIPerceptionStimuliSourceComponent* StimuliSourceComponent; //컴포넌트 생성,
 	TSubclassOf<class UAISense_Sight> SenseSight; //Sight Sense를 등록하기위해서 필요.
@@ -93,6 +94,9 @@ public:
 	/*******************************/
 	//-- Player Movement   ---//
 	/*******************************/
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Controller")
+	class AMainPlayerController* PlayerController;
 
 	//움직임 Enum
 	UPROPERTY(VisibleAnywhere, BlueprintReadWrite, Category = "Enums")
@@ -219,6 +223,12 @@ public:
 	//---     Player Combat     ---//
 	/*******************************/
 
+	// Enemy Bluepirnt를 위함. EnemyAIController에서 Enemy가 플레이어를 발견시 해당 함수 호출함.
+	/*class AEnemy* HasSpotted;
+	FORCEINLINE void SetEnemyFindPlayer(class AEnemy* WhoSpotted) { HasSpotted = WhoSpotted; }
+
+	UFUNCTION(BlueprintCallable)
+	FORCEINLINE AEnemy* GetEnemyFindPlayer() { return HasSpotted; }*/
 	
 	void DecrementHealth(float Amount);
 	void Die();
@@ -229,7 +239,7 @@ public:
 
 	void FallingDamageCalc();
 
-	void TakeFallingDamage();
+	void TakeFallingDamage(float AfterHeight);
 
 	virtual float TakeDamage(float DamageAmount, struct FDamageEvent const& DamageEvent, class AController* EventInstigator, AActor* DamageCauser) override;
 

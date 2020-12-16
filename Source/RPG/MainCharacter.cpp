@@ -4,10 +4,12 @@
 #include "MainCharacter.h"
 #include "Weapon.h"
 #include "Enemy.h"
+#include "MainPlayerController.h"
 #include "Camera/CameraComponent.h"
 #include "GameFramework/SpringArmComponent.h"
 #include "GameFramework/CharacterMovementComponent.h"
 #include "Kismet/GameplayStatics.h"
+#include "Kismet/KismetMathLibrary.h"
 #include "Sound/SoundCue.h"
 #include "DrawDebugHelpers.h"
 #include "Perception/AIPerceptionStimuliSourceComponent.h"
@@ -114,6 +116,9 @@ void AMainCharacter::BeginPlay()
 {
 	Super::BeginPlay();
 	
+
+	PlayerController = Cast<AMainPlayerController>(GetController());
+
 	////////////TEST AI/////////////
 	StimuliSourceComponent->bAutoRegister = true;
 	StimuliSourceComponent->RegisterForSense(SenseSight); //Sight Sense를 등록.
@@ -132,12 +137,13 @@ void AMainCharacter::Tick(float DeltaTime)
 		GEngine->AddOnScreenDebugMessage(-1, 1.f, FColor::Blue, FString::Printf(TEXT("Cur Char Lo : %s"),*GetActorLocation().ToString()));
 	}*/
 
-	/***Line Trace (캐릭터 밑에서부터 Mesh까지의 거리측정 ****/
+	//캐릭터의 높이 관련
 	{
+		/***Line Trace (캐릭터 밑에서부터 Mesh까지의 거리측정 ****/
 		FHitResult OutHit;
 		FVector StartPoint = GetCharacterMovement()->GetActorFeetLocation();
 		FVector EndPoint = FVector(StartPoint.X, StartPoint.Y, -800.f);
-		
+
 		FCollisionQueryParams CollisionParams;
 		//DrawDebugLine(GetWorld(), StartPoint, EndPoint, FColor::Red, false, 1.f, 0, 2); //Line Trace 시각화 Debug
 
@@ -159,19 +165,20 @@ void AMainCharacter::Tick(float DeltaTime)
 				//}
 			}
 		}
-	}
 
-
-	//낙하 데미지
-	if (GetCharacterMovement()->IsFalling()) //공중에서 떨어질때 Damage를 계산 및 적용.
-	{
-		FallingDamageCalc();
+		//낙하 데미지
+		float AfterHeight = 0.f;
+		if (GetCharacterMovement()->IsFalling()) //공중에서 떨어질때 Damage를 계산 및 적용.
+		{
+			AfterHeight = 0.f;
+			FallingDamageCalc();
+		}
+		else if (GetCharacterMovement()->IsFalling() == false)
+		{
+			AfterHeight = OutHit.ImpactPoint.Z;
+			TakeFallingDamage(AfterHeight);
+		}
 	}
-	else if (GetCharacterMovement()->IsFalling() == false)// && GetWorldTimerManager().IsTimerActive(FallingTimer)) //떨어졌고, FallingTimer가 작동중일때만
-	{
-		TakeFallingDamage();
-	}
-
 	//StaminaStatus 관리.
 	switch (StaminaStatus)
 	{
@@ -381,11 +388,11 @@ void AMainCharacter::StopJumping()
 void AMainCharacter::MoveForward(float Value)
 {
 	bMoveForward = false;
-	if ((Controller != nullptr) && (Value != 0.f) && (!bAttacking))
+	if ((PlayerController != nullptr) && (Value != 0.f) && (!bAttacking))
 	{
 		bMoveForward = true;
 		//Cameraboom도 ControlRotation을 이용. ControlRotation을 이용해서 회전방향으로 진행.
-		const FRotator Rotation = Controller->GetControlRotation();
+		const FRotator Rotation = PlayerController->GetControlRotation();
 		const FRotator YawRotation(0.f, Rotation.Yaw, 0.f);
 
 		//이 YawRotation값으로 회전행렬을 만들고 이로부터 X축을 얻는다. (회전체의 기준방향으로 Forward벡터(x)를 얻음)
@@ -398,10 +405,10 @@ void AMainCharacter::MoveForward(float Value)
 void AMainCharacter::MoveRight(float Value)
 {
 	bMoveRight = false;
-	if ((Controller != nullptr) && (Value != 0.f) && (!bAttacking))
+	if ((PlayerController != nullptr) && (Value != 0.f) && (!bAttacking))
 	{
 		bMoveRight = true;
-		const FRotator Rotation = Controller->GetControlRotation();
+		const FRotator Rotation = PlayerController->GetControlRotation();
 		const FRotator YawRotation(0.f, Rotation.Yaw, 0.f);
 
 		const FVector Direction = FRotationMatrix(YawRotation).GetUnitAxis(EAxis::Y);
@@ -442,7 +449,7 @@ void AMainCharacter::CharacterRotate() //공격때 사용함.
 	FVector Direction = FVector(ForwardAxis, RightAxis, 0.f).GetSafeNormal(); //입력에 대한 방향.
 
 	
-	FRotator Rotation = FRotator(0.f, Controller->GetControlRotation().Yaw + Direction.Rotation().Yaw, 0.f); //회전방향 절대축에 입력방향을 더함
+	FRotator Rotation = FRotator(0.f, PlayerController->GetControlRotation().Yaw + Direction.Rotation().Yaw, 0.f); //회전방향 절대축에 입력방향을 더함
 
 	SetActorRotation(Rotation);
 }
@@ -466,16 +473,15 @@ void AMainCharacter::AttackGiveDamage(AEnemy* DamagedEnemy, float WeaponDamage) 
 	
 	UGameplayStatics::ApplyDamage(DamagedEnemy, PlayerDamage + WeaponDamage, GetController(), this, DamageTypeClass);
 
-	UE_LOG(LogTemp, Warning, TEXT("MainPlayer->AttackDamage()"));
-	UE_LOG(LogTemp, Warning, TEXT("Player Base Damage is : %f, EquippedWeapon Damage is : %f"), PlayerDamage, WeaponDamage);
-	UE_LOG(LogTemp, Warning, TEXT("Total Damage is : %f"), PlayerDamage + WeaponDamage);
+	//UE_LOG(LogTemp, Warning, TEXT("MainPlayer->AttackDamage()"));
+	//UE_LOG(LogTemp, Warning, TEXT("Player Base Damage is : %f, EquippedWeapon Damage is : %f"), PlayerDamage, WeaponDamage);
+	//UE_LOG(LogTemp, Warning, TEXT("Total Damage is : %f"), PlayerDamage + WeaponDamage);
 }
 
 //범위공격, AnimNotifyState_RangeAttack에서 호출함( 애님 노티파이 스테이트)
 void AMainCharacter::AttackRangeDamage() //Player의 범위 공격 (스킬 같은것.)
 {
-	UE_LOG(LogTemp, Warning, TEXT("MainCharacter::AttackRangeDamage()"));
-
+	//UE_LOG(LogTemp, Warning, TEXT("MainCharacter::AttackRangeDamage()"));
 	FCollisionQueryParams Params(FName(TEXT("PlayerRangeDamage")), false, this);
 	TArray<FHitResult>OutHit;
 	FVector StartLocation = GetActorLocation(); //StartLocation
@@ -487,26 +493,25 @@ void AMainCharacter::AttackRangeDamage() //Player의 범위 공격 (스킬 같은것.)
 	GetWorld()->SweepMultiByChannel(OutHit, StartLocation, EndLocation, FQuat::Identity, 
 		ECollisionChannel::ECC_Pawn, FCollisionShape::MakeCapsule(WeaponLength), Params);
 	
-	
 	float Damage = PlayerDamage;
-
+	bool AirAttack = false;
 	if (GetCharacterMovement()->IsFalling()) //떨어지고 있으면, 낙하높이에 15%의 데미지를 더 줌.
 	{
+		AirAttack = true;
 		Damage += CurHeight * 0.15f;
+		//UE_LOG(LogTemp, Warning, TEXT("Damage is : %f, Weapon Damage is : %f, TotalDamage is : %f"), Damage, EquippedWeapon->WeaponDamage, Damage + EquippedWeapon->WeaponDamage);
 	}
 
 	float ZSize = WeaponLength.Z;
 	float YSize = WeaponLength.Y;
 	float XSize = WeaponLength.X;
 
-	UE_LOG(LogTemp, Warning, TEXT("Endlocation : %s / /2 : %s"), *EndLocation.ToString(), *(EndLocation*0.5).ToString());
-
-
 	//디버깅용
-	DrawDebugCapsule(GetWorld(), EndLocation,
-		ZSize* 0.5 + XSize + YSize, XSize+YSize, FRotationMatrix::MakeFromZ(GetActorForwardVector() * ZSize).ToQuat(),
-		FColor::Red, false, 2.0f);
-
+	{
+		DrawDebugCapsule(GetWorld(), EndLocation,
+			ZSize * 0.5 + XSize + YSize, XSize + YSize, FRotationMatrix::MakeFromZ(GetActorForwardVector() * ZSize).ToQuat(),
+			FColor::Red, false, 2.0f);
+	}
 
 	if (OutHit.Num() == 0) return;
 
@@ -515,48 +520,45 @@ void AMainCharacter::AttackRangeDamage() //Player의 범위 공격 (스킬 같은것.)
 		AEnemy* Enemy = Cast<AEnemy>(Hit.GetActor());
 		if (Enemy)
 		{
-			DrawDebugCapsule(GetWorld(), EndLocation,
-				ZSize * 0.5 + XSize + YSize, XSize + YSize, FRotationMatrix::MakeFromZ(GetActorForwardVector() * ZSize).ToQuat(),
-				FColor::Green, false, 2.0f);
-			UE_LOG(LogTemp, Warning, TEXT("Player Range Attack success, Damage is : %f, Weapon Damage is : %f, TotalDamage is : %f"), Damage, EquippedWeapon->WeaponDamage, Damage + EquippedWeapon->WeaponDamage);
+			//디버깅용
+			{
+				DrawDebugCapsule(GetWorld(), EndLocation,
+					ZSize * 0.5 + XSize + YSize, XSize + YSize, FRotationMatrix::MakeFromZ(GetActorForwardVector() * ZSize).ToQuat(),
+					FColor::Green, false, 2.0f);
+				//UE_LOG(LogTemp, Warning, TEXT("Player Range Attack success, Damage is : %f, Weapon Damage is : %f, TotalDamage is : %f"), Damage, EquippedWeapon->WeaponDamage, Damage + EquippedWeapon->WeaponDamage);
+			}
+			if (AirAttack == true)
+			{
+				//Air Attack이면 땅에 떨어지고 난뒤에 Damage적용 하기.
+			}
 			UGameplayStatics::ApplyDamage(Enemy, Damage + EquippedWeapon->WeaponDamage, GetController(), this, DamageTypeClass);
 		}
 	}
 	
 }
 
-
-void AMainCharacter::FallingDamageCalc() //낙하 데미지.
+void AMainCharacter::FallingDamageCalc() //낙하시 최대 높이를 구한다.
 {
-	//떨어지는 동안 최대높이를 구한다.
-	//FallingMaxHeight = CurHeight;
-	//UE_LOG(LogTemp, Warning, TEXT("FallingDamageCalc() : MaxHeight is : %f"), FallingMaxHeight);
-	//GetWorldTimerManager().SetTimer(FallingTimer, [this] 
-		{
-			//if (CurHeight >= GetDefaultHalfHeight() * 2.5f)
-			if (FallingMaxHeight < CurHeight)
-			{
-				FallingMaxHeight = CurHeight;
-			}
-			//
-		}//, GetWorld()->GetDeltaSeconds(), true);
-
-	
+	if (FallingMaxHeight < CurHeight)
+	{
+		FallingMaxHeight = CurHeight;
+	}	
 }
 
-void AMainCharacter::TakeFallingDamage()
+void AMainCharacter::TakeFallingDamage(float AfterHeight)
 {
 	//떨어지고 착지 이후에 데미지 계산, 적용 및 초기화를 해준다.
 	
-	if (FallingMaxHeight >= GetDefaultHalfHeight() * 3.f) //자기키의  1.5배가 되면 낙하데미지를 받는다.
+	 // UKismetMathLibrary::Abs(FallingMaxHeight - AfterHeight)
+	if (FallingMaxHeight-AfterHeight >= GetDefaultHalfHeight() * 3.f) //자기키의  1.5배가 되면 낙하데미지를 받는다. 
 	{
 		FallingDamage = FallingMaxHeight * 0.05f; //높이에서 5%를 데미지로 준다.
 		DecrementHealth(FallingDamage);
-		UE_LOG(LogTemp, Warning, TEXT("Falling Max Height is :%f, Falling Damage is : %f"), FallingMaxHeight, FallingDamage);
+		/*UE_LOG(LogTemp, Warning, TEXT("FMH is : %f, AfterHeight is : %f"), FallingMaxHeight, AfterHeight);
+		UE_LOG(LogTemp, Warning, TEXT("Subtract is : %f"), FallingMaxHeight - AfterHeight);
+		UE_LOG(LogTemp, Warning, TEXT("Falling Damage is : %f"), FallingDamage);*/
 	}
 	//관련 변수 초기화.
-	//UE_LOG(LogTemp, Warning, TEXT("Initialize Timer, Falling Variable "));
-	//GetWorldTimerManager().ClearTimer(FallingTimer);
 	FallingDamage = 0.f;
 	FallingMaxHeight = 0.f;
 
@@ -564,7 +566,7 @@ void AMainCharacter::TakeFallingDamage()
 
 float AMainCharacter::TakeDamage(float DamageAmount, struct FDamageEvent const& DamageEvent, class AController* EventInstigator, AActor* DamageCauser)
 {
-	UE_LOG(LogTemp, Warning, TEXT("MainCharacter::TakeDamage()::::Damage Causer : %s , Damage : %f"), *DamageCauser->GetName(), DamageAmount);
+	//UE_LOG(LogTemp, Warning, TEXT("MainCharacter::TakeDamage()::::Damage Causer : %s , Damage : %f"), *DamageCauser->GetName(), DamageAmount);
 	DecrementHealth(DamageAmount);
 	return DamageAmount;
 }

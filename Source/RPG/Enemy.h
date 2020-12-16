@@ -7,7 +7,6 @@
 #include "Perception/AIPerceptionTypes.h"
 #include "Enemy.generated.h"
 
-
 UENUM(BlueprintType)
 enum class EEnemyMovementStatus : uint8
 {
@@ -56,20 +55,36 @@ public:
 
 	FORCEINLINE EEnemyType GetEnemyType() { return EnemyType; }
 
+	bool EnemyisAlive();
+
+
 	///////////////////////////
-	
+	//Effect
 	UPROPERTY(EditAnywhere,BlueprintReadWrite, Category = "Particles")
 	class UParticleSystem* HitParticle;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Particles")
 	class USoundCue* HitSound;
 
+
+	//////////////////////////////
+	/****      Enemy UI      ****/
+	//////////////////////////////
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "UI")
+	TSubclassOf<class UUserWidget> WEnemyHealthBar;
+		//class UUserWidget* WEnemyHealthBar;
+	
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "UI")
+	class UWidgetComponent* EnemyHPbarComp;
+
+	class UEnemyWidget* EnemyWidget;
+
 	//////////////////////////////
 	/****      Enemy Stats   ****/
 	//////////////////////////////
 
-	
-	
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Combat")
 	float Health;
 
@@ -117,6 +132,9 @@ public:
 	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite, Category = "Combat")
 	class UAnimMontage* DashAttackCombatMontage;
 
+	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite, Category = "Combat")
+	UAnimMontage* SpiderHitDeathMontage;
+
 	UFUNCTION()
 	void AttackGiveDamage();
 
@@ -126,6 +144,11 @@ public:
 	virtual float TakeDamage(float DamageAmount, struct FDamageEvent const& DamageEvent, class AController* EventInstigator, AActor* DamageCauser) override;
 
 	void Die();
+
+	UFUNCTION(BlueprintCallable)
+	void DeathEnd();
+	
+	void DeathClear();
 
 	UFUNCTION()
 	void Attack(UBlackboardComponent* BBComp);

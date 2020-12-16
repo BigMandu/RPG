@@ -8,10 +8,14 @@
 #include "DrawDebugHelpers.h"
 #include "GameFramework/CharacterMovementComponent.h"
 #include "Components/SphereComponent.h"
+#include "Components/CapsuleComponent.h"
 #include "Kismet/KismetSystemLibrary.h"
 #include "Kismet/GameplayStatics.h"
 #include "NavigationSystem.h"
 #include "BehaviorTree/BlackboardComponent.h"
+#include "Components/WidgetComponent.h"
+#include "Blueprint/UserWidget.h"
+#include "EnemyWidget.h"
 
 
 /*
@@ -47,7 +51,26 @@ AEnemy::AEnemy()
 	
 	//Pawn이 AI컨트롤러를 생성하고, 소유하는 시기를 결정한다.여기선 World에 배치되거나 스폰될때.
 	AutoPossessAI = EAutoPossessAI::PlacedInWorldOrSpawned; 
+
+
+	//UI Enemy HP bar
+	EnemyHPbarComp = CreateDefaultSubobject<UWidgetComponent>(TEXT("EnemyHPbar"));
+	EnemyHPbarComp->SetupAttachment(GetMesh());
+	EnemyHPbarComp->SetRelativeLocation(FVector(0.f, 0.f, 200.f));
+	EnemyHPbarComp->SetWidgetSpace(EWidgetSpace::Screen);
 	
+
+	//경로를 받아오는 방법..별로 안좋은것 같아서 안쓴다.
+	/*static ConstructorHelpers::FClassFinder<UUserWidget> UI_HUD(TEXT("/Game/Blueprints/HUD/EnemyHPbar.EnemyHPbar_C"));
+	if (UI_HUD.Succeeded())
+	{
+		EnemyHPbar->SetWidget
+		EnemyHPbar->SetWidgetClass(UI_HUD.Class);
+		EnemyHPbar->SetDrawSize(FVector2D(180.f, 30.f));
+	}*/
+
+	//없으면 가져오는건데, 이상하게 WEnemyHealthBar가 nullptr이다.(editor에서 설정을 해줬는데도 nullptr임..)이런적 없었는데
+
 	//Combat 관련 
 	NumberOfCombatAnim = 3; //CombatMontage Animation 개수 디폴트값 지정
 	bAttacking = false;
@@ -57,13 +80,6 @@ AEnemy::AEnemy()
 	Damage = 10.f;
 	AttackRange = 100.f;
 	AttackRadius = 50.f;
-
-	/*
-	//////////AI TEST/////////
-	PerceptionComponent = CreateDefaultSubobject<UAIPerceptionComponent>(TEXT("PerceptionComp"));
-	SenseSightConfig = CreateDefaultSubobject<UAISenseConfig_Sight>(TEXT("Sight"));
-	PerceptionComponent->ConfigureSense(*SenseSightConfig);
-	*/
 }
 
 
@@ -85,6 +101,21 @@ void AEnemy::PostInitializeComponents()
 
 	AttackRange = CombatSphere->GetScaledSphereRadius() * 1.25f;
 	AttackRadius = 45.f;
+
+
+	//Enemy HP BarComponent에 Widgetclass가 없을때
+	if (EnemyHPbarComp->GetWidgetClass() == nullptr)
+	{
+		if (WEnemyHealthBar == nullptr) //만약 TSubclassof EnemyHealthbar에도 지정이 안되어있다면
+		{
+			UE_LOG(LogTemp, Warning, TEXT("WidgetClass is null,,Setting Widget in Editor or EnemyHPbarComponent"));
+		}
+
+		EnemyHPbarComp->SetWidgetClass(WEnemyHealthBar); //WEnemyHealthBar에 넣어둔 UUserwidget으로 세팅함.
+	}
+	EnemyHPbarComp->SetDrawSize(FVector2D(180.f, 30.f));
+	EnemyHPbarComp->SetVisibility(false);
+
 }
 
 // Called when the game starts or when spawned
@@ -95,101 +126,15 @@ void AEnemy::BeginPlay()
 	//AI Controller로 캐스트,
 	AIController = Cast<AEnemyAIController>(GetController());
 
-	/*
-	
-	////////////AI TEST///////////////
-	NavSystem = FNavigationSystem::GetCurrent<UNavigationSystemV1>(GetWorld());
-	
-	//FTimerHandle TimerHandle;
-	//GetWorldTimerManager().SetTimer(TimerHandle, this, &AEnemy::MoveToRandomLocation, 1.5f, true);
-	
-	//Perception Sight추가.
-	SenseSightConfig->SightRadius = 1000.f;
-	SenseSightConfig->LoseSightRadius = 1500.f;
-	SenseSightConfig->PeripheralVisionAngleDegrees = 50.f; //AI의 시야각 설정
-	SenseSightConfig->DetectionByAffiliation.bDetectNeutrals = true;
-	SenseSightConfig->SetMaxAge(30.f);
-	PerceptionComponent->ConfigureSense(*SenseSightConfig); //Sight sense를 넣어준다.	
-	PerceptionComponent->OnTargetPerceptionUpdated.AddDynamic(this, &AEnemy::DetectActor); //OntargetPerceptionUpdated이벤트를 정의함수에 bind시킨다.
-	*/
-}
+	EnemyWidget = Cast<UEnemyWidget>(EnemyHPbarComp->GetUserWidgetObject()); //EnmeyHPbarComp에 설정한 Widget을 Cast한다.
 
-/*
-void AEnemy::MoveToRandomLocation() //TEST목적
-{
-	FVector RandomLocation = FVector(NavSystem->GetRandomReachablePointInRadius(this, GetActorLocation(), 2500.f));
-	FVector LinearRandLocation(RandomLocation.X, RandomLocation.Y, GetActorLocation().Z);
-	if (NavSystem)
+	if (EnemyWidget)
 	{
-		//NavSystem->SimpleMoveToLocation(AIController, LinearRandLocation);
-		AIController->MoveToLocation(LinearRandLocation);
-		
-		//디버깅
-		{
-			UKismetSystemLibrary::DrawDebugSphere(this, LinearRandLocation, 25.f, 6, FLinearColor::Blue, 3.f, 2.f);
-			if (GEngine)
-			{
-				GEngine->AddOnScreenDebugMessage(-1, 1.f, FColor::Red, FString::Printf(TEXT("Next Location : %s"), *LinearRandLocation.ToString()));
-			}
-		}
+		//UE_LOG(LogTemp, Warning, TEXT("EnemyWidget->EnemyMaxHP is : %f"), MaxHealth);
+		EnemyWidget->EnemyMaxHP = MaxHealth; //EnemyWidget의 MAX HP값을 넘겨준다.
+		EnemyWidget->EnemyHP = Health;
 	}
 }
-/*
-void AEnemy::DetectActor(AActor* Actor, FAIStimulus Stimulus)
-{
-	//FTimerHandle LostTimer;
-	//FTimerDelegate LostDelegate;
-	FVector DetectLo = Stimulus.StimulusLocation; //감지된 위치를 저장.
-
-	if (Actor)
-	{
-		AMainCharacter* Main = Cast<AMainCharacter>(Actor); //Main으로 캐스트.
-		if (Main)
-		{
-			if (Stimulus.WasSuccessfullySensed()) //성공적으로 감지를 했으면
-			{
-				GetWorldTimerManager().ClearTimer(LostTimer); //Timer초기화.
-				//아래는 디버깅.
-				{
-					UKismetSystemLibrary::DrawDebugSphere(this, FVector(DetectLo.X, DetectLo.Y, DetectLo.Z + 70.f), 50.f, 12, FLinearColor::Green, 3.f, 2.f);
-					UE_LOG(LogTemp, Warning, TEXT("AI : Detected!! / Location : %s"), *DetectLo.ToString());
-					if (GEngine)
-					{
-						GEngine->AddOnScreenDebugMessage(-1, 3.f, FColor::Green, FString::Printf(TEXT("Detected Location : %s"), *DetectLo.ToString()));
-					}
-				}
-			}
-			else //감지를 못한경우
-			{			
-				LostDelegate = FTimerDelegate::CreateUObject(this, &AEnemy::TargetLost, Actor); //TimerDelegate를 이용해서 파라미터를 넘겨줌
-				GetWorldTimerManager().SetTimer(LostTimer, LostDelegate, 5.0f, false); //SetTimer로 함수를 호출
-				
-				//디버깅용
-				{
-					UE_LOG(LogTemp, Warning, TEXT("AI : Missing Player // Last Location : %s"), *DetectLo.ToString());
-					if (GEngine)
-					{
-						GEngine->AddOnScreenDebugMessage(-1, 3.f, FColor::Green, FString::Printf(TEXT("Last Location : %s"), *DetectLo.ToString()));
-					}
-				}
-			}
-		}
-	}
-}
-
-void AEnemy::TargetLost(AActor* Actor)
-{
-	Actor = nullptr; //Main을 null로 바꿔줌
-	//아래는 디버깅
-	{
-		UE_LOG(LogTemp, Warning, TEXT("TargetLost() // AI : Target Lost!!"));
-		if (GEngine)
-		{
-			GEngine->AddOnScreenDebugMessage(-1, 1.f, FColor::Red, FString::Printf(TEXT("TargetLost() // Target Lost!!")));
-		}
-	}
-}
-*/
 
 // Called every frame
 void AEnemy::Tick(float DeltaTime)
@@ -216,28 +161,9 @@ void AEnemy::SetupPlayerInputComponent(UInputComponent* PlayerInputComponent)
 }
 
 
-
-	//////////////////////////////
-	/****    Enemy Combat    ****/
-	//////////////////////////////
-/*
-void AEnemy::Chase(class AMainCharacter* Target)
-{
-	SetEnemyMovementStatus(EEnemyMovementStatus::EMS_Chase);
-	
-	if (AIController)
-	{
-		//UE_LOG(LogTemp, Warning, TEXT("EnemyMovement : Chase "));
-		FAIMoveRequest MoveRequest;
-		MoveRequest.SetGoalActor(Target);
-		MoveRequest.SetAcceptanceRadius(15.f);
-
-		FNavPathSharedPtr NavPath;
-
-		AIController->MoveTo(MoveRequest, &NavPath);
-
-	}
-}*/
+//////////////////////////////
+/****    Enemy Combat    ****/
+//////////////////////////////
 
 void AEnemy::AgroSphereOverlapBegin(UPrimitiveComponent* OverlappedComponent, AActor* OtherActor, UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult)
 {
@@ -308,7 +234,7 @@ bool AEnemy::ReturnHit() //AnimNotifyState_RangeAttack()에서 호출함.
 
 void AEnemy::AttackGiveDamage()
 {
-	UE_LOG(LogTemp, Warning, TEXT("Enemy::AttackGiveDamage Function called!"));
+	//UE_LOG(LogTemp, Warning, TEXT("Enemy::AttackGiveDamage Function called!"));
 
 	FHitResult HitResult;
 	FVector StartVec = GetActorLocation();
@@ -328,14 +254,14 @@ void AEnemy::AttackGiveDamage()
 	{
 		if (HitResult.Actor.IsValid())
 		{
-			UE_LOG(LogTemp, Warning, TEXT(" Hit Actor name is : %s"), *HitResult.GetActor()->GetName());
+			//UE_LOG(LogTemp, Warning, TEXT(" Hit Actor name is : %s"), *HitResult.GetActor()->GetName());
 
 			AMainCharacter* Main = Cast<AMainCharacter>(HitResult.GetActor());
 			if (Main)
 			{
 				UGameplayStatics::ApplyDamage(Main, Damage, GetController(), this, DamageTypeClass);
-				UE_LOG(LogTemp, Warning, TEXT("Enemy::ApplyDamage"));
-				UE_LOG(LogTemp, Warning, TEXT("Damage : %f"), Damage);
+				//UE_LOG(LogTemp, Warning, TEXT("Enemy::ApplyDamage"));
+				//UE_LOG(LogTemp, Warning, TEXT("Damage : %f"), Damage);
 			}
 		}
 		bWasHit = true;
@@ -344,24 +270,63 @@ void AEnemy::AttackGiveDamage()
 
 float AEnemy::TakeDamage(float DamageAmount, struct FDamageEvent const& DamageEvent, class AController* EventInstigator, AActor* DamageCauser)
 {
+	//인식하지 못했는데 데미지를 받았으면 바로 돌게하기 위함
+	{
+		AIController->UpdateTargetKey(DamageCauser);
+		RotateToTarget();
+	}
 	if (Health - DamageAmount <= 0.f)
 	{
-		UE_LOG(LogTemp, Warning, TEXT("Enemy::TakeDamage()::call Die()!!:::::Damage Causer : %s , Damage : %f"), *DamageCauser->GetName(), DamageAmount);
+		//UE_LOG(LogTemp, Warning, TEXT("Enemy::TakeDamage()::call Die()!!:::::Damage Causer : %s , Damage : %f"), *DamageCauser->GetName(), DamageAmount);
 		Die();
 	}
 	else
 	{
-		UE_LOG(LogTemp, Warning, TEXT("Enemy::TakeDamage()::::Damage Causer : %s , Damage : %f"), *DamageCauser->GetName(), DamageAmount);
+		//UE_LOG(LogTemp, Warning, TEXT("Enemy::TakeDamage()::::Damage Causer : %s , Damage : %f"), *DamageCauser->GetName(), DamageAmount);
 		Health -= DamageAmount;
 	}
+
+	if (EnemyWidget)
+	{
+		//UE_LOG(LogTemp, Warning, TEXT("EnemyWidget->EnemyHP is : %f"), Health);
+		EnemyWidget->EnemyHP = Health; //Damage를 받을때 마다 update해준다.
+	}
+
 	return DamageAmount;
 }
 
 void AEnemy::Die()
 {
-	Health = 0;
+	SetEnemyMovementStatus(EEnemyMovementStatus::EMS_Dead);
+	Health = 0.f;
+	UAnimInstance* Anim = GetMesh()->GetAnimInstance();
+	if (Anim)
+	{
+		Anim->Montage_Play(SpiderHitDeathMontage, 1.2f);
+		Anim->Montage_JumpToSection(FName("Death"), SpiderHitDeathMontage);
+		
+	}
+	CombatSphere->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+	GetCapsuleComponent()->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+
+	
+	
 	UE_LOG(LogTemp, Warning, TEXT("Enemy::Die()"));
 }
+
+void AEnemy::DeathEnd()
+{
+	FTimerHandle DeathTimer;
+	GetMesh()->bPauseAnims = true;
+	GetMesh()->bNoSkeletonUpdate = true;
+	GetWorldTimerManager().SetTimer(DeathTimer, this, &AEnemy::DeathClear, 4.0f);
+}
+
+void AEnemy::DeathClear()
+{
+	Destroy();
+}
+
 
 void AEnemy::Attack(UBlackboardComponent* BBComp)
 {	
@@ -406,7 +371,7 @@ void AEnemy::Attack(UBlackboardComponent* BBComp)
 				FVector DashVector(GetActorForwardVector() * 1200.f);
 				DashVector.Z = CurrentVector.Z; //오르막길, 내리막길에선 어떻게 하지??
 
-				UE_LOG(LogTemp, Warning, TEXT("DashVector is : %s"), *DashVector.ToString());
+				//UE_LOG(LogTemp, Warning, TEXT("DashVector is : %s"), *DashVector.ToString());
 				
 				//AIController->MoveToLocation(DashVector + BeforeVector);
 				GetCharacterMovement()->MaxWalkSpeed = 950.f;
@@ -430,21 +395,9 @@ void AEnemy::Attack(UBlackboardComponent* BBComp)
 	}
 }
 
-
-//공격 모션이 끝나면, OnMontageEnded가 호출되는데, 이때 delegate로 bind한 이 함수도 호출되면서
-//bAttacking을 false시켜줌.
-//void AEnemy::OnCombatMontageEnded(UAnimMontage* Montage, bool bInterrupted)
-//{
-//	bAttacking = false;
-//	if (DashAttackHandle.IsValid())
-//	{
-//		GetWorldTimerManager().ClearTimer(DashAttackHandle);
-//	}
-//}
-
 void AEnemy::AttackEnd()
 {
-	UE_LOG(LogTemp, Warning, TEXT("Delegate:: Enemy:: Attack End Function call"));
+	//UE_LOG(LogTemp, Warning, TEXT("Delegate:: Enemy:: Attack End Function call"));
 	bAttacking = false;
 	bWasHit = false; //ReturnHit()에서 사용함.
 	if (DashAttackHandle.IsValid())
@@ -456,7 +409,7 @@ void AEnemy::AttackEnd()
 
 void AEnemy::RotateToTarget()
 {
-	float InterpSpeed = 5.0f;
+	float InterpSpeed = 20.0f;
 	UBlackboardComponent* BBComp = AIController->GetBlackboardComponent();
 	AMainCharacter* MainChar = Cast<AMainCharacter>(BBComp->GetValueAsObject(AIController->TargetKey));
 	if (!MainChar || !BBComp)
