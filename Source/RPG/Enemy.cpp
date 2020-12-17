@@ -9,6 +9,7 @@
 #include "GameFramework/CharacterMovementComponent.h"
 #include "Components/SphereComponent.h"
 #include "Components/CapsuleComponent.h"
+#include "Kismet/KismetMathLibrary.h"
 #include "Kismet/KismetSystemLibrary.h"
 #include "Kismet/GameplayStatics.h"
 #include "NavigationSystem.h"
@@ -16,6 +17,7 @@
 #include "Components/WidgetComponent.h"
 #include "Blueprint/UserWidget.h"
 #include "EnemyWidget.h"
+#include "Soul.h"
 
 
 /*
@@ -80,6 +82,9 @@ AEnemy::AEnemy()
 	Damage = 10.f;
 	AttackRange = 100.f;
 	AttackRadius = 50.f;
+
+	SoulMin = 1;
+	SoulMax = 4;
 }
 
 
@@ -314,7 +319,7 @@ void AEnemy::Die()
 	UE_LOG(LogTemp, Warning, TEXT("Enemy::Die()"));
 }
 
-void AEnemy::DeathEnd()
+void AEnemy::DeathEnd() //Die함수에서 재생하는 Animation의 Notify에서 호출.
 {
 	FTimerHandle DeathTimer;
 	GetMesh()->bPauseAnims = true;
@@ -324,7 +329,36 @@ void AEnemy::DeathEnd()
 
 void AEnemy::DeathClear()
 {
+	SpawnLoot();
 	Destroy();
+	//Soul의 Spawn을 여기서 한다.
+}
+
+void AEnemy::SpawnLoot()
+{	
+
+	int32 SoulQuantity = FMath::RandRange(SoulMin, SoulMax);
+
+	UWorld* World = GetWorld();
+
+	UObject* SpawnSoul = Cast<UObject>(StaticLoadObject(UObject::StaticClass(), NULL, TEXT("/Game/Blueprints/Soul_BP.Soul_BP")));
+	UBlueprint* SoulClass = Cast<UBlueprint>(SpawnSoul);
+	FActorSpawnParameters SpawnParams;
+	SpawnItemArea = FVector(40.f);
+	/*static ConstructorHelpers::FObjectFinder<UBlueprint> SoulBP(TEXT("Blueprint'/Game/Blueprints/Soul_BP.Soul_BP'"));
+	if (SoulBP.Object)
+	{
+		SoulClass = (UClass*)SoulBP.Object->GeneratedClass;
+	}*/
+
+	if (World && SoulClass)
+	{
+		for (int it =0; it < SoulQuantity; it++)
+		{
+			const FVector SpawnLocation = UKismetMathLibrary::RandomPointInBoundingBox(GetActorLocation(), SpawnItemArea);
+			World->SpawnActor<ASoul>(SoulClass->GeneratedClass, SpawnLocation, FRotator(0.f), SpawnParams);
+		}
+	}
 }
 
 

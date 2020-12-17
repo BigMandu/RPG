@@ -204,7 +204,7 @@ public:
 	////Coin, Soul function////
 	void IncrementCoin(int32 Amount);
 	//void DecrementCoin(int32 Amount);
-	//void IncrementSoul(int32 Amount);
+	void IncrementSoul(int32 Amount);
 	//void DecrementSoul(int32 Amount);
 
 	/*******************************/

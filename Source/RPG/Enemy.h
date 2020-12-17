@@ -55,8 +55,7 @@ public:
 
 	FORCEINLINE EEnemyType GetEnemyType() { return EnemyType; }
 
-	bool EnemyisAlive();
-
+	//bool EnemyisAlive();
 
 	///////////////////////////
 	//Effect
@@ -119,6 +118,21 @@ public:
 	float PatrolArea; //정찰 범위 BTTask_SearchPatrolLocation에서 사용함.
 
 
+	//Enemy가 죽고난뒤
+
+	UPROPERTY(EditAnywhere, Category = "Loot")
+	int32 SoulMin;
+	UPROPERTY(EditAnywhere, Category = "Loot")
+	int32 SoulMax;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Loot")
+	FVector SpawnItemArea;
+
+	/*UPROPERTY(EditAnywhere, Category = "Loot")
+	TSubclassOf<class ASoul> SoulClass;*/
+	//class ASoul* SoulClass;
+	void SpawnLoot();
+
 
 	//////////////////////////////
 	/****    Enemy Combat    ****/
@@ -175,21 +189,7 @@ public:
 
 	int32 Section; //특정 Animation을 재생하기 위한 값.
 
-	/*
-	//////////////AI TEST////////////////////
-	class UNavigationSystemV1* NavSystem; //TEST목적, RandomLocation을 얻는 함수를 사용하기 위해.
-	void MoveToRandomLocation();
 
-	
-	FTimerHandle LostTimer;
-	FTimerDelegate LostDelegate;
-	class UAIPerceptionComponent* PerceptionComponent;
-	class UAISenseConfig_Sight* SenseSightConfig;
-
-	UFUNCTION()
-	void DetectActor(AActor* Actor, FAIStimulus Stimulus);
-	void TargetLost(AActor* Actor);
-	*/
 
 protected:
 	// Called when the game starts or when spawned

@@ -462,6 +462,10 @@ void AMainCharacter::IncrementCoin(int32 Amount)
 	Coins += Amount;
 }
 
+void AMainCharacter::IncrementSoul(int32 Amount)
+{
+	Souls += Amount;
+}
 
 /*************** Damage ****************/
 //////////   Damage 관련 함수   /////////
