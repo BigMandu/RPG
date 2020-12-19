@@ -88,18 +88,55 @@ AEnemy::AEnemy()
 }
 
 
-void AEnemy::PostInitializeComponents()
+void AEnemy::PostInitializeComponents() //여기다가 하ㅓ면 좀 별로인듯... 만들질 못하네 ㅋㅋ
 {
 	Super::PostInitializeComponents();
+	//AnimInstance = Cast<UEnemyAnimInstance>(GetMesh()->GetAnimInstance());
+	////check(AnimInstance != nullptr);
+
+	//AgroSphere->OnComponentBeginOverlap.AddDynamic(this, &AEnemy::AgroSphereOverlapBegin);
+	//AgroSphere->OnComponentEndOverlap.AddDynamic(this, &AEnemy::AgroSphereOverlapEnd);
+	//CombatSphere->OnComponentBeginOverlap.AddDynamic(this, &AEnemy::CombatSphereOverlapBegin);
+	//CombatSphere->OnComponentEndOverlap.AddDynamic(this, &AEnemy::CombatSphereOverlapEnd);
+
+	////AnimInstance->OnMontageEnded.AddDynamic(this, &AEnemy::OnCombatMontageEnded);
+
+	//AnimInstance->RangeAttack.AddUObject(this, &AEnemy::AttackGiveDamage);
+	//AnimInstance->AttackEnd.AddUObject(this, &AEnemy::AttackEnd);
+
+
+	//AttackRange = CombatSphere->GetScaledSphereRadius() * 1.25f;
+	//AttackRadius = 45.f;
+
+	//
+	////Enemy HP BarComponent에 Widgetclass가 없을때
+	//if (EnemyHPbarComp->GetWidgetClass() == nullptr)
+	//{
+	//	if (WEnemyHealthBar == nullptr) //만약 TSubclassof EnemyHealthbar에도 지정이 안되어있다면
+	//	{
+	//		UE_LOG(LogTemp, Warning, TEXT("WidgetClass is null,,Setting Widget in Editor or EnemyHPbarComponent"));
+	//	}
+
+	//	EnemyHPbarComp->SetWidgetClass(WEnemyHealthBar); //WEnemyHealthBar에 넣어둔 UUserwidget으로 세팅함.
+	//}
+	//EnemyHPbarComp->SetDrawSize(FVector2D(180.f, 30.f));
+	//EnemyHPbarComp->SetVisibility(false);
+
+}
+
+// Called when the game starts or when spawned
+void AEnemy::BeginPlay()
+{
+	Super::BeginPlay();
+	//여기부터 아래까지는 임시로 해놓은것임. ->Enemy추가를 위함. ->추가 다하면  PostInitializeComponents 주석 해제하고, 아래 코드는 삭제하기.
 	AnimInstance = Cast<UEnemyAnimInstance>(GetMesh()->GetAnimInstance());
-	check(AnimInstance != nullptr);
+	//check(AnimInstance != nullptr);
 
 	AgroSphere->OnComponentBeginOverlap.AddDynamic(this, &AEnemy::AgroSphereOverlapBegin);
 	AgroSphere->OnComponentEndOverlap.AddDynamic(this, &AEnemy::AgroSphereOverlapEnd);
 	CombatSphere->OnComponentBeginOverlap.AddDynamic(this, &AEnemy::CombatSphereOverlapBegin);
 	CombatSphere->OnComponentEndOverlap.AddDynamic(this, &AEnemy::CombatSphereOverlapEnd);
 
-	//AnimInstance->OnMontageEnded.AddDynamic(this, &AEnemy::OnCombatMontageEnded);
 	AnimInstance->RangeAttack.AddUObject(this, &AEnemy::AttackGiveDamage);
 	AnimInstance->AttackEnd.AddUObject(this, &AEnemy::AttackEnd);
 
@@ -120,14 +157,8 @@ void AEnemy::PostInitializeComponents()
 	}
 	EnemyHPbarComp->SetDrawSize(FVector2D(180.f, 30.f));
 	EnemyHPbarComp->SetVisibility(false);
+	//위부터 여기 까지는 임시로 해놓은것임.
 
-}
-
-// Called when the game starts or when spawned
-void AEnemy::BeginPlay()
-{
-	Super::BeginPlay();
-	
 	//AI Controller로 캐스트,
 	AIController = Cast<AEnemyAIController>(GetController());
 
@@ -316,7 +347,6 @@ void AEnemy::Die()
 	}
 	CombatSphere->SetCollisionEnabled(ECollisionEnabled::NoCollision);
 	GetCapsuleComponent()->SetCollisionEnabled(ECollisionEnabled::NoCollision);
-	UE_LOG(LogTemp, Warning, TEXT("Enemy::Die()"));
 }
 
 void AEnemy::DeathEnd() //Die함수에서 재생하는 Animation의 Notify에서 호출.
