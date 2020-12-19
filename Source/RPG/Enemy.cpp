@@ -303,35 +303,34 @@ float AEnemy::TakeDamage(float DamageAmount, struct FDamageEvent const& DamageEv
 void AEnemy::Die()
 {
 	SetEnemyMovementStatus(EEnemyMovementStatus::EMS_Dead);
+	AIController->UpdateTargetKey(nullptr);
+	AIController->UpdateHasDetectedPlayer(false);
+
 	Health = 0.f;
 	UAnimInstance* Anim = GetMesh()->GetAnimInstance();
 	if (Anim)
 	{
-		Anim->Montage_Play(SpiderHitDeathMontage, 1.2f);
+		Anim->Montage_Play(SpiderHitDeathMontage, 0.8f);
 		Anim->Montage_JumpToSection(FName("Death"), SpiderHitDeathMontage);
 		
 	}
 	CombatSphere->SetCollisionEnabled(ECollisionEnabled::NoCollision);
 	GetCapsuleComponent()->SetCollisionEnabled(ECollisionEnabled::NoCollision);
-
-	
-	
 	UE_LOG(LogTemp, Warning, TEXT("Enemy::Die()"));
 }
 
 void AEnemy::DeathEnd() //Die함수에서 재생하는 Animation의 Notify에서 호출.
 {
 	FTimerHandle DeathTimer;
+	GetWorldTimerManager().SetTimer(DeathTimer, this, &AEnemy::DeathClear, 2.5f);
 	GetMesh()->bPauseAnims = true;
 	GetMesh()->bNoSkeletonUpdate = true;
-	GetWorldTimerManager().SetTimer(DeathTimer, this, &AEnemy::DeathClear, 4.0f);
 }
 
 void AEnemy::DeathClear()
 {
 	SpawnLoot();
 	Destroy();
-	//Soul의 Spawn을 여기서 한다.
 }
 
 void AEnemy::SpawnLoot()
@@ -400,16 +399,16 @@ void AEnemy::Attack(UBlackboardComponent* BBComp)
 			
 			if (!CloseCombat && DashAttack) //Dash공격이 true면
 			{
+				AMainCharacter* MainChar = Cast<AMainCharacter>(BBComp->GetValueAsObject(AIController->TargetKey));
+
+				checkf(MainChar, TEXT("Enemy::Attack() MainChar is NULL"));
+				checkf(BBComp, TEXT("Enemy::Attack() BBComp is NULL"));
 
 				FVector CurrentVector = GetActorLocation();
 				FVector DashVector(GetActorForwardVector() * 1200.f);
 				DashVector.Z = CurrentVector.Z; //오르막길, 내리막길에선 어떻게 하지??
 
-				//UE_LOG(LogTemp, Warning, TEXT("DashVector is : %s"), *DashVector.ToString());
-				
-				//AIController->MoveToLocation(DashVector + BeforeVector);
 				GetCharacterMovement()->MaxWalkSpeed = 950.f;
-
 				AnimInstance->Montage_Play(DashAttackCombatMontage, 1.2f);
 				
 				GetWorld()->GetTimerManager().SetTimer(DashAttackHandle, [=]
@@ -417,10 +416,11 @@ void AEnemy::Attack(UBlackboardComponent* BBComp)
 					if (FName("Dash") == AnimInstance->Montage_GetCurrentSection(DashAttackCombatMontage))
 					{
 						RotateToTarget(); //대쉬중 회전도 가능하게 한번 넣어봤다.
-						//bAttacking = true;
+						
 						FAIMoveRequest MoveReq;
-						MoveReq.SetGoalLocation(DashVector + CurrentVector);
-						MoveReq.SetStopOnOverlap(true); //추가해봄.
+						MoveReq.SetGoalActor(MainChar);
+						//MoveReq.SetGoalLocation(DashVector + CurrentVector);
+						MoveReq.SetStopOnOverlap(true); //추가해봄;
 						AIController->MoveTo(MoveReq);
 					}
 				}, 1.0f, true);
