@@ -74,10 +74,10 @@ public:
 
 	//이 무기를 갖고있는 Player를 가져온다.
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Item")
-	class AMainCharacter* WeaponOwner;
+	class ACharacter* WeaponOwner;
 
-	FORCEINLINE void SetWeaponOwner(class AMainCharacter* MainChar) { WeaponOwner = MainChar; }
-	FORCEINLINE AMainCharacter* GetWeaponOwner() { return WeaponOwner; }
+	FORCEINLINE void SetWeaponOwner(class ACharacter* Character) { WeaponOwner = Character; }
+	FORCEINLINE ACharacter* GetWeaponOwner() { return WeaponOwner; }
 
 	/*******************************/
 	//---      Weapon Stats    ---//
@@ -89,7 +89,8 @@ public:
 	//---      Weapon State     ---//
 	/*******************************/
 	//equip function
-	void Equip(class AMainCharacter* MainChar);
+	void Equip(class ACharacter* Character);
+	void Equip(class ACharacter* Character, const USkeletalMeshSocket* Socket);
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadWrite, Category = "Item")
 	EWeaponState WeaponState;

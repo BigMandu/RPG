@@ -18,6 +18,7 @@
 #include "Blueprint/UserWidget.h"
 #include "EnemyWidget.h"
 #include "Soul.h"
+#include "Weapon.h"
 
 
 /*
@@ -85,6 +86,11 @@ AEnemy::AEnemy()
 
 	SoulMin = 1;
 	SoulMax = 4;
+
+	//RangeAttack이 없는 Enemy는 false로 한다. -> 함수 delegate bind시 에러나기 때문.
+	bHasRangeAttack = false; //이 값은 Editor에서 설정한다.
+	
+	bStrongAttack = false; //강공격을 하는지 설정. Damage를 더 주기 위함. -> Attack, AttackGiveDamage에서 사용
 }
 
 
@@ -101,7 +107,7 @@ void AEnemy::PostInitializeComponents() //여기다가 하ㅓ면 좀 별로인듯... 만들질 
 
 	////AnimInstance->OnMontageEnded.AddDynamic(this, &AEnemy::OnCombatMontageEnded);
 
-	//AnimInstance->RangeAttack.AddUObject(this, &AEnemy::AttackGiveDamage);
+	//AnimInstance->RangeAttack.AddUObject(this, &AEnemy::AttackRangeDamage);
 	//AnimInstance->AttackEnd.AddUObject(this, &AEnemy::AttackEnd);
 
 
@@ -130,20 +136,24 @@ void AEnemy::BeginPlay()
 	Super::BeginPlay();
 	//여기부터 아래까지는 임시로 해놓은것임. ->Enemy추가를 위함. ->추가 다하면  PostInitializeComponents 주석 해제하고, 아래 코드는 삭제하기.
 	AnimInstance = Cast<UEnemyAnimInstance>(GetMesh()->GetAnimInstance());
-	//check(AnimInstance != nullptr);
+	check(AnimInstance != nullptr);
 
 	AgroSphere->OnComponentBeginOverlap.AddDynamic(this, &AEnemy::AgroSphereOverlapBegin);
 	AgroSphere->OnComponentEndOverlap.AddDynamic(this, &AEnemy::AgroSphereOverlapEnd);
 	CombatSphere->OnComponentBeginOverlap.AddDynamic(this, &AEnemy::CombatSphereOverlapBegin);
 	CombatSphere->OnComponentEndOverlap.AddDynamic(this, &AEnemy::CombatSphereOverlapEnd);
 
-	AnimInstance->RangeAttack.AddUObject(this, &AEnemy::AttackGiveDamage);
-	AnimInstance->AttackEnd.AddUObject(this, &AEnemy::AttackEnd);
-
-
+	AnimInstance->RangeAttack.AddUObject(this, &AEnemy::AttackRangeDamage);
 	AttackRange = CombatSphere->GetScaledSphereRadius() * 1.25f;
 	AttackRadius = 45.f;
 
+	AnimInstance->AttackEnd.AddUObject(this, &AEnemy::AttackEnd);
+
+	AnimInstance->ActivateCollision.AddUObject(this, &AEnemy::ActivateCollision);
+	AnimInstance->DeactivateCollision.AddUObject(this, &AEnemy::DeactivateCollision);
+
+
+	
 
 	//Enemy HP BarComponent에 Widgetclass가 없을때
 	if (EnemyHPbarComp->GetWidgetClass() == nullptr)
@@ -161,6 +171,45 @@ void AEnemy::BeginPlay()
 
 	//AI Controller로 캐스트,
 	AIController = Cast<AEnemyAIController>(GetController());
+
+
+	//Sweepbysinglechannel을 사용하지 않는 Enemy의 행동트리(Dash Attack)을 막기위함. -> Dash Attack montage를 판정하기때문에 필요없어짐.
+	//if (bHasRangeAttack == true) //Editor에서 설정하는 bool값.
+	//{
+	//	AIController->UpdateHasRangeAttack(true);
+	//}
+
+	//AIController->UpdateHasRangeAttack(false);
+
+
+	if (EnemyWeaponType == EEnemyWeaponType::EWT_Weapon)
+	{
+		if (EnemyWeapon)
+		{
+			const USkeletalMeshSocket* LeftSocket = GetMesh()->GetSocketByName("weapon_left");
+			const USkeletalMeshSocket* RightSocket = GetMesh()->GetSocketByName("weapon_right");
+			if (LeftSocket)
+			{
+				LeftWeapon = GetWorld()->SpawnActor<AWeapon>(EnemyWeapon);
+				if (LeftWeapon)
+				{
+					LeftWeapon->Equip(this, LeftSocket);
+					LeftWeapon->SetWeaponOwner(this);
+				}
+				
+			}
+			if (RightSocket)
+			{
+				RightWeapon = GetWorld()->SpawnActor<AWeapon>(EnemyWeapon);
+				if (RightWeapon)
+				{
+					RightWeapon->Equip(this, RightSocket);
+					RightWeapon->SetWeaponOwner(this);
+				}
+			}
+		}
+	}
+
 
 	EnemyWidget = Cast<UEnemyWidget>(EnemyHPbarComp->GetUserWidgetObject()); //EnmeyHPbarComp에 설정한 Widget을 Cast한다.
 
@@ -263,12 +312,13 @@ bool AEnemy::ReturnHit() //AnimNotifyState_RangeAttack()에서 호출함.
 		return true;
 	}
 	
-	AttackGiveDamage();
+	AttackRangeDamage();
 	//UE_LOG(LogTemp, Warning, TEXT("Enemy::ReturnHit() return False"));
 	return false;
 }
 
-void AEnemy::AttackGiveDamage()
+
+void AEnemy::AttackRangeDamage() //범위공격
 {
 	//UE_LOG(LogTemp, Warning, TEXT("Enemy::AttackGiveDamage Function called!"));
 
@@ -295,12 +345,45 @@ void AEnemy::AttackGiveDamage()
 			AMainCharacter* Main = Cast<AMainCharacter>(HitResult.GetActor());
 			if (Main)
 			{
-				UGameplayStatics::ApplyDamage(Main, Damage, GetController(), this, DamageTypeClass);
+				if (bStrongAttack == true)
+				{
+					UGameplayStatics::ApplyDamage(Main, Damage + (Damage*0.5), AIController, this, DamageTypeClass);
+					bStrongAttack = false;
+					UE_LOG(LogTemp, Warning, TEXT("Strong Attack . Damage is : %f"), Damage + (Damage * 0.5));
+				}
+				else
+				{
+					UGameplayStatics::ApplyDamage(Main, Damage, AIController, this, DamageTypeClass);
+					UE_LOG(LogTemp, Warning, TEXT("Damage is : %f"), Damage);
+				}
+				
 				//UE_LOG(LogTemp, Warning, TEXT("Enemy::ApplyDamage"));
 				//UE_LOG(LogTemp, Warning, TEXT("Damage : %f"), Damage);
 			}
 		}
 		bWasHit = true;
+	}
+}
+
+void AEnemy::AttackGiveDamage(ACharacter* Victim) //무기를 이용한 공격
+{
+	//UGameplayStatics::ApplyDamage(DamagedEnemy, PlayerDamage + WeaponDamage, GetController(), this, DamageTypeClass);
+	AMainCharacter* Main = Cast<AMainCharacter>(Victim);
+	if (Main)
+	{
+		UE_LOG(LogTemp, Warning, TEXT("Enemy::ApplyDamage"));
+		if (bStrongAttack == true)
+		{
+			UGameplayStatics::ApplyDamage(Main, Damage + (Damage*0.5), AIController, this, DamageTypeClass);
+			bStrongAttack = false;
+			UE_LOG(LogTemp, Warning, TEXT("Strong Attack . Damage is : %f"), Damage + (Damage * 0.5));
+		}
+		else
+		{
+			UGameplayStatics::ApplyDamage(Main, Damage, AIController, this, DamageTypeClass);
+			UE_LOG(LogTemp, Warning, TEXT("Damage is : %f"), Damage);
+		}
+		
 	}
 }
 
@@ -360,6 +443,14 @@ void AEnemy::DeathEnd() //Die함수에서 재생하는 Animation의 Notify에서 호출.
 void AEnemy::DeathClear()
 {
 	SpawnLoot();
+	if (LeftWeapon)
+	{
+		LeftWeapon->Destroy();
+	}
+	if (RightWeapon)
+	{
+		RightWeapon->Destroy();
+	}
 	Destroy();
 }
 
@@ -400,6 +491,7 @@ void AEnemy::Attack(UBlackboardComponent* BBComp)
 		{
 			SetEnemyMovementStatus(EEnemyMovementStatus::EMS_Attack);
 
+			//AIController에서 세팅하는 값.
 			bool CloseCombat = BBComp->GetValueAsBool(AIController->CanAttackKey); //근접공격을 재생해야하는지
 			bool DashAttack = BBComp->GetValueAsBool(AIController->CanDashAttackKey); //대쉬공격을 해야하는지 판단 하기 위해 bb에서 값을 가져옴.
 			
@@ -414,19 +506,19 @@ void AEnemy::Attack(UBlackboardComponent* BBComp)
 				switch (Section)
 				{
 				case 0:
-					AnimInstance->Montage_JumpToSection(FName("Attack_1"), CloseCombatMontage);
+					AnimInstance->Montage_JumpToSection(FName("Attack_1"), CloseCombatMontage); //Right Attack
 					break;
 				case 1:
-					AnimInstance->Montage_JumpToSection(FName("Attack_2"), CloseCombatMontage);
+					AnimInstance->Montage_JumpToSection(FName("Attack_2"), CloseCombatMontage); //Left Attack
 					break;
 				case 2:
-					AnimInstance->Montage_JumpToSection(FName("Attack_Strong"), CloseCombatMontage);
+					AnimInstance->Montage_JumpToSection(FName("Attack_Strong"), CloseCombatMontage); //Both side Attack
+					bStrongAttack = true;
 					break;
 				default:
 					break;
 				}
 			}
-			
 			if (!CloseCombat && DashAttack) //Dash공격이 true면
 			{
 				AMainCharacter* MainChar = Cast<AMainCharacter>(BBComp->GetValueAsObject(AIController->TargetKey));
@@ -440,21 +532,22 @@ void AEnemy::Attack(UBlackboardComponent* BBComp)
 
 				GetCharacterMovement()->MaxWalkSpeed = 950.f;
 				AnimInstance->Montage_Play(DashAttackCombatMontage, 1.2f);
-				
+
 				GetWorld()->GetTimerManager().SetTimer(DashAttackHandle, [=]
-				{
-					if (FName("Dash") == AnimInstance->Montage_GetCurrentSection(DashAttackCombatMontage))
 					{
-						RotateToTarget(); //대쉬중 회전도 가능하게 한번 넣어봤다.
-						
-						FAIMoveRequest MoveReq;
-						MoveReq.SetGoalActor(MainChar);
-						//MoveReq.SetGoalLocation(DashVector + CurrentVector);
-						MoveReq.SetStopOnOverlap(true); //추가해봄;
-						AIController->MoveTo(MoveReq);
-					}
-				}, 1.0f, true);
+						if (FName("Dash") == AnimInstance->Montage_GetCurrentSection(DashAttackCombatMontage))
+						{
+							RotateToTarget(); //대쉬중 회전도 가능하게 한번 넣어봤다.
+
+							FAIMoveRequest MoveReq;
+							MoveReq.SetGoalActor(MainChar);
+							//MoveReq.SetGoalLocation(DashVector + CurrentVector);
+							MoveReq.SetStopOnOverlap(true); //추가해봄;
+							AIController->MoveTo(MoveReq);
+						}
+					}, 1.0f, true);
 			}
+			
 		}
 	}
 }
@@ -493,4 +586,42 @@ void AEnemy::RotateToTarget()
 	FRotator InterpRotation = FMath::RInterpTo(GetActorRotation(), LookAtYaw, GetWorld()->GetDeltaSeconds(), InterpSpeed);
 	
 	SetActorRotation(InterpRotation);
+}
+
+
+void AEnemy::ActivateCollision()
+{
+	UAnimMontage* CurrentPlay = AnimInstance->GetCurrentActiveMontage();
+	FName SectionName = AnimInstance->Montage_GetCurrentSection(CurrentPlay);
+
+	if (SectionName == FName("Attack_1") && RightWeapon) //Right Attack
+	{
+		UE_LOG(LogTemp, Warning, TEXT("Right Attack -> Activate Collision"));
+		RightWeapon->ActivateCollision();
+	}
+	if (SectionName == FName("Attack_2") && LeftWeapon) //Left Attack
+	{
+		UE_LOG(LogTemp, Warning, TEXT("Left Attack -> Activate Collision"));
+		LeftWeapon->ActivateCollision();
+	}
+	if (SectionName == FName("Attack_Strong") && LeftWeapon && RightWeapon) //Both side Attack
+	{
+		UE_LOG(LogTemp, Warning, TEXT("Both side -> Activate Collision"));
+		RightWeapon->ActivateCollision();
+		LeftWeapon->ActivateCollision();
+	}
+}
+
+void AEnemy::DeactivateCollision()
+{
+	if (LeftWeapon)
+	{
+		UE_LOG(LogTemp, Warning, TEXT("Left -> Deactivate Collision"));
+		LeftWeapon->DeactivateCollision();
+	}
+	if (RightWeapon)
+	{
+		UE_LOG(LogTemp, Warning, TEXT("Right -> Deactivate Collision"));
+		RightWeapon->DeactivateCollision();
+	}
 }

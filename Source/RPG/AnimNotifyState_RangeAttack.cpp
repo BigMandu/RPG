@@ -18,9 +18,9 @@ void UAnimNotifyState_RangeAttack::NotifyBegin(USkeletalMeshComponent* MeshComp,
 	{
 		MainChar->AttackRangeDamage();
 	}
-	else if (Enemy)
+	else if (Enemy && Enemy->bHasRangeAttack)
 	{
-		Enemy->AttackGiveDamage();
+		Enemy->AttackRangeDamage();
 	}
 	
 }
@@ -29,7 +29,7 @@ void UAnimNotifyState_RangeAttack::NotifyTick(USkeletalMeshComponent* MeshComp, 
 {
 	Super::NotifyTick(MeshComp, Animation, FrameDeltaTime);
 
-	if (Enemy != nullptr)
+	if (Enemy && Enemy->bHasRangeAttack)
 	{
 		Enemy->RotateToTarget();
 		
@@ -45,7 +45,7 @@ void UAnimNotifyState_RangeAttack::NotifyEnd(USkeletalMeshComponent* MeshComp, U
 {
 	Super::NotifyEnd(MeshComp, Animation);
 
-	if (Enemy != nullptr)
+	if (Enemy && Enemy->bHasRangeAttack)
 	{
 		Enemy->AttackEnd();
 	}

@@ -86,8 +86,10 @@ void AWeapon::OnOverlapEnd(UPrimitiveComponent* OverlappedComponent, AActor* Oth
 }
 
 
-void AWeapon::Equip(class AMainCharacter* MainChar)
+void AWeapon::Equip(class ACharacter* Character)
 {
+	AMainCharacter* MainChar = Cast<AMainCharacter>(Character);
+
 	if (MainChar)
 	{
 		//Camera를 무시하도록 설정
@@ -114,6 +116,18 @@ void AWeapon::Equip(class AMainCharacter* MainChar)
 			IdleParticle->Deactivate();
 		}
 	}
+
+	
+}
+
+void AWeapon::Equip(class ACharacter* Character, const USkeletalMeshSocket* Socket)
+{
+	AEnemy* Enemy = Cast<AEnemy>(Character);
+	if (Enemy && Socket)
+	{
+		CollisionVolume->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+		Socket->AttachActor(this, Enemy->GetMesh());
+	}
 }
 
 void AWeapon::CombatCollisionOverlapBegin(UPrimitiveComponent* OverlappedComponent, AActor* OtherActor, UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult)
@@ -122,30 +136,45 @@ void AWeapon::CombatCollisionOverlapBegin(UPrimitiveComponent* OverlappedCompone
 	{
 		if (SweepResult.Actor.IsValid()) 
 		{
-			AEnemy* Enemy = Cast<AEnemy>(OtherActor);
-			AMainCharacter* MainChar = GetWeaponOwner();
-			if (Enemy && MainChar) 
+			AMainCharacter* OwnerMain = Cast<AMainCharacter>(GetWeaponOwner()); //가해자가 Player
+			AEnemy* OwnerEnemy = Cast<AEnemy>(GetWeaponOwner()); //가해자가 Enemy
+
+			if (OwnerMain) //가해자가 Player일때(이 무기의 소유자가 Player일때)
 			{
-				UE_LOG(LogTemp, Warning, TEXT("Weapon::Overlap Actor is Enemy"));
-				if (Enemy->HitParticle)
+				AEnemy* Enemy = Cast<AEnemy>(OtherActor); //피해자
+				if (Enemy)
 				{
-					FVector HitLocation = SweepResult.ImpactPoint; //지금 안됨. 
-					/*
-					UE_LOG(LogTemp, Warning, TEXT("Enemy World location is : %s"), *Enemy->GetActorLocation().ToString());
-					UE_LOG(LogTemp, Warning, TEXT("Hit Actor Name is : %s"), *SweepResult.GetActor()->GetFName().ToString());
-					UE_LOG(LogTemp, Warning, TEXT("Hit Bone Name is : %s"), *SweepResult.BoneName.ToString());
-					UE_LOG(LogTemp, Warning, TEXT("Impact Point is : %s"), *HitLocation.ToString());
-					UE_LOG(LogTemp, Warning, TEXT("Impact Normal is : %s"), *SweepResult.ImpactNormal.ToString());
-					UE_LOG(LogTemp, Warning, TEXT("Location is : %s"), *SweepResult.Location.ToString());
-					UE_LOG(LogTemp, Warning, TEXT("Normal is : %s"), *SweepResult.Normal.ToString());
-					*/
-					UGameplayStatics::SpawnEmitterAtLocation(GetWorld(), Enemy->HitParticle, HitLocation); 
+					UE_LOG(LogTemp, Warning, TEXT("Weapon::Overlap Actor is Enemy"));
+					if (Enemy->HitParticle)
+					{
+						FVector HitLocation = SweepResult.ImpactPoint; //지금 안됨. 
+						/*
+						UE_LOG(LogTemp, Warning, TEXT("Enemy World location is : %s"), *Enemy->GetActorLocation().ToString());
+						UE_LOG(LogTemp, Warning, TEXT("Hit Actor Name is : %s"), *SweepResult.GetActor()->GetFName().ToString());
+						UE_LOG(LogTemp, Warning, TEXT("Hit Bone Name is : %s"), *SweepResult.BoneName.ToString());
+						UE_LOG(LogTemp, Warning, TEXT("Impact Point is : %s"), *HitLocation.ToString());
+						UE_LOG(LogTemp, Warning, TEXT("Impact Normal is : %s"), *SweepResult.ImpactNormal.ToString());
+						UE_LOG(LogTemp, Warning, TEXT("Location is : %s"), *SweepResult.Location.ToString());
+						UE_LOG(LogTemp, Warning, TEXT("Normal is : %s"), *SweepResult.Normal.ToString());
+						*/
+						UGameplayStatics::SpawnEmitterAtLocation(GetWorld(), Enemy->HitParticle, HitLocation);
+					}
+					if (Enemy->HitSound)
+					{
+						UGameplayStatics::PlaySound2D(this, Enemy->HitSound);
+					}
+					OwnerMain->AttackGiveDamage(Enemy, WeaponDamage);
 				}
-				if (Enemy->HitSound)
+			}
+
+			if (OwnerEnemy)
+			{
+				AMainCharacter* MainChar = Cast<AMainCharacter>(OtherActor);
+				if (MainChar)
 				{
-					UGameplayStatics::PlaySound2D(this, Enemy->HitSound);
+					UE_LOG(LogTemp, Warning, TEXT("Weapon::Enemy Hit Player!"));
+					OwnerEnemy->AttackGiveDamage(MainChar);
 				}
-				MainChar->AttackGiveDamage(Enemy, WeaponDamage);
 			}
 		}
 	}

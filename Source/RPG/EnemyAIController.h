@@ -62,7 +62,7 @@ public:
 	const FName CanDashAttackKey = FName("CanDashAttack");
 	const FName EnumUpdateKey = FName("EnumStatusKey");
 	const FName HasDamageUpdateKey = FName("HasDamage");
-	
+	const FName HasRangeAttackKey = FName("HasRangeAttack");
 
 protected:
 		// Called when the game starts or when spawned
@@ -94,4 +94,5 @@ public:
 	void UpdateCanDashAttack(bool CanDashAttack);
 	void UpdateEnumMovementStatus(EEnemyMovementStatus MovementStatus);
 	void UpdateHasDamage(bool HasDamage);
+	void UpdateHasRangeAttack(bool HasRangeAttack);
 };

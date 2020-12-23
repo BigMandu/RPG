@@ -20,11 +20,10 @@ enum class EEnemyMovementStatus : uint8
 };
 
 UENUM(BlueprintType)
-enum class EEnemyType : uint8
+enum class EEnemyWeaponType : uint8
 {
-	ET_Creature		UMETA(DisplayName = "Creature"),
-	ET_Humanoid		UMETA(DisplayName = "Humanoid"),
-	ET_Boss			UMETA(DisplayName = "Boss"),
+	EWT_Weapon		UMETA(DisplayName = "HasWeapon"),
+	EWT_NoWeapon	UMETA(DisplayName = "NoWeapon"),
 
 	ET_MAX			UMETA(DisplayName = "DefaultMAX")
 };
@@ -51,9 +50,13 @@ public:
 
 	//////////   Enemy Type   ///////////
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Type")
-	EEnemyType EnemyType;
+	EEnemyWeaponType EnemyWeaponType;
 
-	FORCEINLINE EEnemyType GetEnemyType() { return EnemyType; }
+	FORCEINLINE EEnemyWeaponType GetEnemyType() { return EnemyWeaponType; }
+
+
+
+
 
 	//bool EnemyisAlive();
 
@@ -138,6 +141,17 @@ public:
 	/****    Enemy Combat    ****/
 	//////////////////////////////
 	
+	//Enemy의 Weapon
+	UPROPERTY(EditDefaultsOnly, Category = "Combat")
+	TSubclassOf<class AWeapon> EnemyWeapon;
+
+	//Collision을 각자 활성화/비활성화를 위함.
+	AWeapon* LeftWeapon;
+	AWeapon* RightWeapon;
+
+	void ActivateCollision();
+	void DeactivateCollision();
+	
 	class UEnemyAnimInstance* AnimInstance;
 
 	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite, Category = "Combat")
@@ -148,9 +162,16 @@ public:
 
 	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite, Category = "Combat")
 	UAnimMontage* SpiderHitDeathMontage;
+	
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Combat")
+	bool bHasRangeAttack;
 
 	UFUNCTION()
-	void AttackGiveDamage();
+	void AttackRangeDamage();
+
+	void AttackGiveDamage(ACharacter* Victim);
+
+	bool bStrongAttack;
 
 	bool ReturnHit();
 	bool bWasHit;
@@ -166,9 +187,6 @@ public:
 
 	UFUNCTION()
 	void Attack(UBlackboardComponent* BBComp);
-
-	//UFUNCTION()
-	//void OnCombatMontageEnded(UAnimMontage* Montage, bool bInterrupted); //OnMontageEnded delegate와 연결할 함수.
 
 	UFUNCTION()
 	void AttackEnd();

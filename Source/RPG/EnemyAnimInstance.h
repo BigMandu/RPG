@@ -8,6 +8,9 @@
 
 DECLARE_MULTICAST_DELEGATE(FRangeAttackDelegate);
 DECLARE_MULTICAST_DELEGATE(FAttackEndDelegate);
+DECLARE_MULTICAST_DELEGATE(FActivateCollisionDelegate);
+DECLARE_MULTICAST_DELEGATE(FDeactivateCollisionDelegate);
+
 /**
  * 
  */
@@ -26,8 +29,19 @@ public:
 	UFUNCTION()
 	void AnimNotify_AttackEnd();
 
+	UFUNCTION()
+	void AnimNotify_ActivateCollision();
+	UFUNCTION()
+	void AnimNotify_DeactivateCollision();
+
+
+
+
 	FRangeAttackDelegate RangeAttack; //이 함수유형을 AnimNotify_RangeAttack함수가 호출될때 전부 호출시킬거다.
 	FAttackEndDelegate AttackEnd;
+
+	FActivateCollisionDelegate ActivateCollision;
+	FDeactivateCollisionDelegate DeactivateCollision;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Movement")
 	float MovementSpeed;

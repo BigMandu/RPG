@@ -58,31 +58,33 @@ void AEnemyAIController::Tick(float DeltaTime)
 {
 	Super::Tick(DeltaTime);
 
-	//if (BBComp->GetValueAsObject(TargetKey))
-	//{
-	//	AMainCharacter* MainChar = Cast<AMainCharacter>(BBComp->GetValueAsObject(TargetKey));
-	//	MainChar->PlayerController->EnemyLocation = Enemy->GetActorLocation();  //Enemy HealthBar를 위함.
-	//}
-	
-	
-	//Dash Attack 가능여부 판단. 및 Enemy HealthBar를 위한 Enemy Location추가.
-	if (BBComp->GetValueAsBool(HasDetectedPlayerKey))
+	//Dash Attack(Dash Attack) 가능여부 판단 -> DashAttack Animation이 있으면 가능.
+	if (Enemy->DashAttackCombatMontage)
 	{
-		AMainCharacter* MainChar = Cast<AMainCharacter>(BBComp->GetValueAsObject(TargetKey));
-		if (MainChar)
+		if (BBComp->GetValueAsBool(HasDetectedPlayerKey))
 		{
-			FVector TargetLo = MainChar->GetActorLocation();
-			float DistanceToTarget = FVector::Dist(TargetLo, Enemy->GetActorLocation());
-			if (DistanceToTarget >= SightRadius-200.f) //포착 && 거리= (시야범위 - 200.f) 이상이면 dashattack가능.
+			AMainCharacter* MainChar = Cast<AMainCharacter>(BBComp->GetValueAsObject(TargetKey));
+			if (MainChar)
 			{
-				UpdateCanDashAttack(true);
-			}
-			else
-			{
-				UpdateCanDashAttack(false);
+				FVector TargetLo = MainChar->GetActorLocation();
+				float DistanceToTarget = FVector::Dist(TargetLo, Enemy->GetActorLocation());
+				if (DistanceToTarget >= SightRadius - 200.f) //포착 && 거리= (시야범위 - 200.f) 이상이면 dashattack가능.
+				{
+					UpdateCanDashAttack(true);
+				}
+				else
+				{
+					UpdateCanDashAttack(false);
+				}
 			}
 		}
 	}
+	else
+	{
+		UpdateCanDashAttack(false);
+	}
+
+
 	//상시로 Enum업데이트하기 위해서.
 	UpdateEnumMovementStatus(Enemy->EnemyMovementStatus);
 }
@@ -239,4 +241,8 @@ void AEnemyAIController::UpdateEnumMovementStatus(EEnemyMovementStatus MovementS
 void AEnemyAIController::UpdateHasDamage(bool HasDamage)
 {
 	BBComp->SetValueAsBool(HasDamageUpdateKey, HasDamage);
+}
+void AEnemyAIController::UpdateHasRangeAttack(bool HasRangeAttack)
+{
+	BBComp->SetValueAsBool(HasRangeAttackKey, HasRangeAttack);
 }

@@ -41,7 +41,11 @@ void UEnemyAnimInstance::UpdateAnimation()
 void UEnemyAnimInstance::AnimNotify_RangeAttack()
 {
 	//UE_LOG(LogTemp, Warning, TEXT("EnemyAnimInstance::Range Attack Notify Received!!"));
-	RangeAttack.Broadcast();
+	if (Enemy->bHasRangeAttack)
+	{
+		RangeAttack.Broadcast();
+	}
+	
 }
 
 
@@ -49,4 +53,14 @@ void UEnemyAnimInstance::AnimNotify_AttackEnd()
 {
 	//UE_LOG(LogTemp, Warning, TEXT("EnemyAnimInstance::AttackEnd Notify Received!!"));
 	AttackEnd.Broadcast();
+	
+}
+
+void UEnemyAnimInstance::AnimNotify_ActivateCollision() //Enemy에서 사용
+{
+	ActivateCollision.Broadcast();
+}
+void UEnemyAnimInstance::AnimNotify_DeactivateCollision() //Enemy에서 사용
+{
+	DeactivateCollision.Broadcast();
 }
