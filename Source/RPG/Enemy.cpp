@@ -36,10 +36,12 @@ AEnemy::AEnemy()
 	AgroSphere = CreateDefaultSubobject<USphereComponent>(TEXT("AgroSphere"));
 	AgroSphere->SetupAttachment(GetRootComponent());
 	AgroSphere->InitSphereRadius(1000.f); //SightRadius와 동일값으로 설정해줌.
+	AgroSphere->SetCollisionResponseToChannel(ECollisionChannel::ECC_WorldDynamic, ECollisionResponse::ECR_Ignore);
 
 	CombatSphere = CreateDefaultSubobject<USphereComponent>(TEXT("CombatSphere"));
 	CombatSphere->SetupAttachment(GetRootComponent());
 	CombatSphere->InitSphereRadius(80.f);
+	CombatSphere->SetCollisionResponseToChannel(ECollisionChannel::ECC_WorldDynamic, ECollisionResponse::ECR_Ignore);
 
 	//정찰범위 디폴트로 500 설정. BTTask_SearchPatrolLocation에서 사용.
 	PatrolArea = 500.f;
@@ -226,6 +228,7 @@ void AEnemy::Tick(float DeltaTime)
 {
 	Super::Tick(DeltaTime);
 
+	CurrentMovementSpeed = GetCharacterMovement()->GetMaxSpeed();
 
 	//CanAttack이면 Target(Player)에 향하도록 회전을 추가한다.
 	if (AIController->GetBlackboardComponent()->GetValueAsBool(AIController->CanAttackKey) ||
@@ -387,22 +390,15 @@ void AEnemy::AttackGiveDamage(ACharacter* Victim) //무기를 이용한 공격
 	}
 }
 
-float AEnemy::TakeDamage(float DamageAmount, struct FDamageEvent const& DamageEvent, class AController* EventInstigator, AActor* DamageCauser)
+void AEnemy::DecrementalHealth(float TakeDamage)
 {
-	//인식하지 못했는데 데미지를 받았으면 바로 돌게하기 위함
+	if (Health - TakeDamage <= 0.f)
 	{
-		AIController->UpdateTargetKey(DamageCauser);
-		RotateToTarget();
-	}
-	if (Health - DamageAmount <= 0.f)
-	{
-		//UE_LOG(LogTemp, Warning, TEXT("Enemy::TakeDamage()::call Die()!!:::::Damage Causer : %s , Damage : %f"), *DamageCauser->GetName(), DamageAmount);
 		Die();
 	}
 	else
 	{
-		//UE_LOG(LogTemp, Warning, TEXT("Enemy::TakeDamage()::::Damage Causer : %s , Damage : %f"), *DamageCauser->GetName(), DamageAmount);
-		Health -= DamageAmount;
+		Health -= TakeDamage;
 	}
 
 	if (EnemyWidget)
@@ -410,7 +406,16 @@ float AEnemy::TakeDamage(float DamageAmount, struct FDamageEvent const& DamageEv
 		//UE_LOG(LogTemp, Warning, TEXT("EnemyWidget->EnemyHP is : %f"), Health);
 		EnemyWidget->EnemyHP = Health; //Damage를 받을때 마다 update해준다.
 	}
+}
 
+float AEnemy::TakeDamage(float DamageAmount, struct FDamageEvent const& DamageEvent, class AController* EventInstigator, AActor* DamageCauser)
+{
+	//인식하지 못했는데 데미지를 받았으면 바로 돌게하기 위함
+	{
+		AIController->UpdateTargetKey(DamageCauser);
+		RotateToTarget();
+	}
+	DecrementalHealth(DamageAmount);
 	return DamageAmount;
 }
 
@@ -424,8 +429,8 @@ void AEnemy::Die()
 	UAnimInstance* Anim = GetMesh()->GetAnimInstance();
 	if (Anim)
 	{
-		Anim->Montage_Play(SpiderHitDeathMontage, 0.8f);
-		Anim->Montage_JumpToSection(FName("Death"), SpiderHitDeathMontage);
+		Anim->Montage_Play(HitDeathMontage, 0.8f);
+		Anim->Montage_JumpToSection(FName("Death"), HitDeathMontage);
 		
 	}
 	CombatSphere->SetCollisionEnabled(ECollisionEnabled::NoCollision);
@@ -460,10 +465,12 @@ void AEnemy::SpawnLoot()
 	int32 SoulQuantity = FMath::RandRange(SoulMin, SoulMax);
 
 	UWorld* World = GetWorld();
+	
+	//LeftWeapon = GetWorld()->SpawnActor<AWeapon>(EnemyWeapon);
 
-	UObject* SpawnSoul = Cast<UObject>(StaticLoadObject(UObject::StaticClass(), NULL, TEXT("/Game/Blueprints/Soul_BP.Soul_BP")));
+	/*UObject* SpawnSoul = Cast<UObject>(StaticLoadObject(UObject::StaticClass(), NULL, TEXT("/Game/Blueprints/Soul_BP.Soul_BP")));
 	UBlueprint* SoulClass = Cast<UBlueprint>(SpawnSoul);
-	FActorSpawnParameters SpawnParams;
+	FActorSpawnParameters SpawnParams;*/
 	SpawnItemArea = FVector(40.f);
 	/*static ConstructorHelpers::FObjectFinder<UBlueprint> SoulBP(TEXT("Blueprint'/Game/Blueprints/Soul_BP.Soul_BP'"));
 	if (SoulBP.Object)
@@ -471,14 +478,23 @@ void AEnemy::SpawnLoot()
 		SoulClass = (UClass*)SoulBP.Object->GeneratedClass;
 	}*/
 
-	if (World && SoulClass)
+	if (World && Soul)
 	{
-		for (int it =0; it < SoulQuantity; it++)
+		for (int it = 0; it < SoulQuantity; it++)
 		{
 			const FVector SpawnLocation = UKismetMathLibrary::RandomPointInBoundingBox(GetActorLocation(), SpawnItemArea);
-			World->SpawnActor<ASoul>(SoulClass->GeneratedClass, SpawnLocation, FRotator(0.f), SpawnParams);
+			World->SpawnActor<ASoul>(Soul,SpawnLocation, FRotator(0.f));
 		}
 	}
+
+	//if (World && SoulClass)
+	//{
+	//	for (int it =0; it < SoulQuantity; it++)
+	//	{
+	//		const FVector SpawnLocation = UKismetMathLibrary::RandomPointInBoundingBox(GetActorLocation(), SpawnItemArea);
+	//		World->SpawnActor<ASoul>(SoulClass->GeneratedClass, SpawnLocation, FRotator(0.f), SpawnParams);
+	//	}
+	//}
 }
 
 
@@ -531,6 +547,9 @@ void AEnemy::Attack(UBlackboardComponent* BBComp)
 				DashVector.Z = CurrentVector.Z; //오르막길, 내리막길에선 어떻게 하지??
 
 				GetCharacterMovement()->MaxWalkSpeed = 950.f;
+				
+				check(DashAttackCombatMontage);
+
 				AnimInstance->Montage_Play(DashAttackCombatMontage, 1.2f);
 
 				GetWorld()->GetTimerManager().SetTimer(DashAttackHandle, [=]
@@ -566,7 +585,7 @@ void AEnemy::AttackEnd()
 
 void AEnemy::RotateToTarget()
 {
-	float InterpSpeed = 20.0f;
+	float InterpSpeed = 80.0f;
 	UBlackboardComponent* BBComp = AIController->GetBlackboardComponent();
 	AMainCharacter* MainChar = Cast<AMainCharacter>(BBComp->GetValueAsObject(AIController->TargetKey));
 	if (!MainChar || !BBComp)

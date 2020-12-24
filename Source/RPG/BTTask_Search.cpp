@@ -25,6 +25,18 @@ EBTNodeResult::Type UBTTask_Search::ExecuteTask(UBehaviorTreeComponent& OwnerCom
 	Enemy->SetEnemyMovementStatus(EEnemyMovementStatus::EMS_Search);
 	Enemy->GetCharacterMovement()->MaxWalkSpeed = 450.f;
 	
+	if (Enemy->GetFName().ToString().Contains(TEXT("Lane"), ESearchCase::IgnoreCase, ESearchDir::FromStart)) //Enemy별로 Chase 속도를 다르게 하기 위함.
+	{
+		if (Enemy->GetFName().ToString().Contains(TEXT("Core"), ESearchCase::IgnoreCase, ESearchDir::FromStart))
+		{
+			Enemy->GetCharacterMovement()->MaxWalkSpeed = 750.f;
+		}
+		else
+		{
+			Enemy->GetCharacterMovement()->MaxWalkSpeed = 520.f;
+		}
+
+	}
 
 	return NodeResult;
 }

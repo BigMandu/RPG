@@ -17,17 +17,30 @@ EBTNodeResult::Type UBTTask_Chase::ExecuteTask(UBehaviorTreeComponent& OwnerComp
 	EBTNodeResult::Type NodeResult = Super::ExecuteTask(OwnerComp, NodeMemory);
 
 	AEnemy* Enemy = Cast<AEnemy>(OwnerComp.GetAIOwner()->GetCharacter());
-	
+
 	if (Enemy == nullptr)
 	{
 		UE_LOG(LogTemp, Warning, TEXT("AEnemy Cast failure"));
 		NodeResult = EBTNodeResult::Failed;
 	}
 
-	//if (Enemy->EnemyMovementStatus != EEnemyMovementStatus::EMS_Attack) //공격중이 아닐때 chase로 
+
+	Enemy->SetEnemyMovementStatus(EEnemyMovementStatus::EMS_Chase);
+	Enemy->GetCharacterMovement()->MaxWalkSpeed = 550.f;
+
+	//UE_LOG(LogTemp, Warning, TEXT("Enemy name is : %s"),*(Enemy->GetFName().ToString()));  result is  'MinionLaneCore_dusk_BP_3'
+
+	if (Enemy->GetFName().ToString().Contains(TEXT("Lane"), ESearchCase::IgnoreCase, ESearchDir::FromStart)) //Enemy별로 Chase 속도를 다르게 하기 위함.
 	{
-		Enemy->SetEnemyMovementStatus(EEnemyMovementStatus::EMS_Chase);
-		Enemy->GetCharacterMovement()->MaxWalkSpeed = 550.f;
+		if (Enemy->GetFName().ToString().Contains(TEXT("Core"), ESearchCase::IgnoreCase, ESearchDir::FromStart))
+		{
+			Enemy->GetCharacterMovement()->MaxWalkSpeed = 950.f;
+		}
+		else
+		{
+			Enemy->GetCharacterMovement()->MaxWalkSpeed = 720.f;
+		}
+
 	}
 
 	return NodeResult;

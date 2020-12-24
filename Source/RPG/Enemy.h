@@ -45,6 +45,9 @@ public:
 	EEnemyMovementStatus EnemyMovementStatus;
 
 	FORCEINLINE void SetEnemyMovementStatus(EEnemyMovementStatus EnemyStatus) { EnemyMovementStatus = EnemyStatus; }
+
+	UPROPERTY(VisibleAnywhere, Category = "Movement")
+	float CurrentMovementSpeed;
 	///////////////////////////////
 
 
@@ -131,8 +134,8 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Loot")
 	FVector SpawnItemArea;
 
-	/*UPROPERTY(EditAnywhere, Category = "Loot")
-	TSubclassOf<class ASoul> SoulClass;*/
+	UPROPERTY(EditDefaultsOnly, Category = "Loot")
+	TSubclassOf<class ASoul> Soul;
 	//class ASoul* SoulClass;
 	void SpawnLoot();
 
@@ -161,7 +164,7 @@ public:
 	class UAnimMontage* DashAttackCombatMontage;
 
 	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite, Category = "Combat")
-	UAnimMontage* SpiderHitDeathMontage;
+	UAnimMontage* HitDeathMontage;
 	
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Combat")
 	bool bHasRangeAttack;
@@ -175,6 +178,8 @@ public:
 
 	bool ReturnHit();
 	bool bWasHit;
+
+	void DecrementalHealth(float Damage);
 
 	virtual float TakeDamage(float DamageAmount, struct FDamageEvent const& DamageEvent, class AController* EventInstigator, AActor* DamageCauser) override;
 

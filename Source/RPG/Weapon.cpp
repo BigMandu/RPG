@@ -125,6 +125,7 @@ void AWeapon::Equip(class ACharacter* Character, const USkeletalMeshSocket* Sock
 	AEnemy* Enemy = Cast<AEnemy>(Character);
 	if (Enemy && Socket)
 	{
+		SkeletalMesh->SetCollisionResponseToChannel(ECollisionChannel::ECC_Camera, ECollisionResponse::ECR_Ignore);
 		CollisionVolume->SetCollisionEnabled(ECollisionEnabled::NoCollision);
 		Socket->AttachActor(this, Enemy->GetMesh());
 	}

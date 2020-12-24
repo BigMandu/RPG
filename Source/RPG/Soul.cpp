@@ -77,9 +77,10 @@ void ASoul::Tick(float DeltaTime)
 	
 	FVector LerpLocation = FMath::Lerp(InitialLocation, PlayerCurLocation, AlphaTime);
 	
-	UE_LOG(LogTemp, Warning, TEXT("AlphaTime : %f"), AlphaTime);
+	//µð¹ö±ë¿ë
+	/*UE_LOG(LogTemp, Warning, TEXT("AlphaTime : %f"), AlphaTime);
 	UE_LOG(LogTemp, Warning, TEXT("PlayerLocation : %s"), *PlayerCurLocation.ToString());
-	UE_LOG(LogTemp, Warning, TEXT("Lerp Location : %s"), *LerpLocation.ToString());
+	UE_LOG(LogTemp, Warning, TEXT("Lerp Location : %s"), *LerpLocation.ToString());*/
 	
 	//FVector InterpLocation = FMath::VInterpTo(InitialLocation, LerpLocation, DeltaTime, 2.0f);
 	SetActorLocation(LerpLocation);
