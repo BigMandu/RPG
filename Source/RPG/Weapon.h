@@ -92,6 +92,13 @@ public:
 	void Equip(class ACharacter* Character);
 	void Equip(class ACharacter* Character, const USkeletalMeshSocket* Socket);
 
+	void ThrowWeapon(ACharacter* Character, FName SocketName);
+	void ReceiveWeapon(ACharacter* Character);
+	float Time;
+	float AlphaTime;
+	FTimerHandle WeaponThrowHandle;
+
+
 	UPROPERTY(VisibleAnywhere, BlueprintReadWrite, Category = "Item")
 	EWeaponState WeaponState;
 

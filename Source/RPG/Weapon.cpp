@@ -131,6 +131,64 @@ void AWeapon::Equip(class ACharacter* Character, const USkeletalMeshSocket* Sock
 	}
 }
 
+void AWeapon::ThrowWeapon(ACharacter* Character, FName SocketName)
+{
+	AMainCharacter* Main = Cast<AMainCharacter>(Character);
+	if (Main)
+	{
+		this->DetachFromActor(FDetachmentTransformRules(EDetachmentRule::KeepWorld, EDetachmentRule::KeepWorld, EDetachmentRule::KeepWorld, false));
+		
+		//CollisionVolume->SetCollisionEnabled(ECollisionEnabled::QueryOnly);
+		CombatCollision->SetCollisionEnabled(ECollisionEnabled::QueryOnly);
+
+		FVector Destination = (Main->GetActorForwardVector() * 1600.f) + Main->GetActorLocation();
+		Destination.Z = GetActorLocation().Z;
+		FVector CurWeaponLocation = GetActorLocation();
+
+		FRotator InitRotation = GetActorRotation();
+
+		Time = 0.f;
+		AlphaTime = 0.f;
+
+
+		GetWorldTimerManager().SetTimer(WeaponThrowHandle, [=] {
+			Time += GetWorld()->GetDeltaSeconds();
+			AlphaTime = Time / 1.f;
+
+			FVector WeaponLocation = FMath::Lerp(CurWeaponLocation, Destination, AlphaTime);
+			SetActorLocation(WeaponLocation);
+
+			FRotator WeaponRotation = GetActorRotation();
+			WeaponRotation.Roll += GetWorld()->GetDeltaSeconds() * 2000.f;
+			FRotator WeaponRolling = FRotator(90.f, 0.f, WeaponRotation.Roll);
+			SetActorRotation(WeaponRolling);
+
+			if (AlphaTime >= 1.f)
+			{
+				UE_LOG(LogTemp, Warning, TEXT("Alpha Time is over 1.f"));
+				ReceiveWeapon(Main);
+			}
+			
+			}, GetWorld()->GetDeltaSeconds(), true);
+		
+		
+
+	}
+}
+
+void AWeapon::ReceiveWeapon(ACharacter* Character)
+{
+	AMainCharacter* Main = Cast<AMainCharacter>(Character);
+	if (Main)
+	{
+		GetWorldTimerManager().ClearTimer(WeaponThrowHandle);
+		//SetActorRotation(InitRotation);
+		SetActorLocation(Main->GetActorLocation());
+		Equip(Main);
+		CombatCollision->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+	}
+}
+
 void AWeapon::CombatCollisionOverlapBegin(UPrimitiveComponent* OverlappedComponent, AActor* OtherActor, UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult)
 {
 	if (OtherActor)

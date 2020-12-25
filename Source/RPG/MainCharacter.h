@@ -63,6 +63,7 @@ public:
 	bool bShiftKeyDown;
 	bool bEKeyDown;
 	bool bLMBDown;
+	bool bRMBDown;
 	bool bJumpKeyDown;
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Movement")
@@ -186,6 +187,8 @@ public:
 	void EKeyUp();
 	void LMBDown();
 	void LMBUp();
+	void RMBDown();
+	void RMBUp();
 	virtual void Jump() override;
 	virtual void StopJumping() override;
 

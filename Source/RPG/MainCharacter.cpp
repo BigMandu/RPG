@@ -311,6 +311,9 @@ void AMainCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputCompo
 	PlayerInputComponent->BindAction("LMB", EInputEvent::IE_Pressed, this, &AMainCharacter::LMBDown);
 	PlayerInputComponent->BindAction("LMB", EInputEvent::IE_Released, this, &AMainCharacter::LMBUp);
 
+	PlayerInputComponent->BindAction("RMB", EInputEvent::IE_Pressed, this, &AMainCharacter::RMBDown);
+	PlayerInputComponent->BindAction("RMB", EInputEvent::IE_Released, this, &AMainCharacter::RMBUp);
+
 }
 
 /*************** Input **************/
@@ -362,6 +365,29 @@ void AMainCharacter::LMBDown()
 void AMainCharacter::LMBUp()
 {
 	bLMBDown = false;
+}
+
+void AMainCharacter::RMBDown()
+{
+	if (EquippedWeapon && !bAttacking)
+	{
+		FName AttachedSocketName = EquippedWeapon->GetAttachParentSocketName();
+		//UE_LOG(LogTemp, Warning, TEXT("Weapon Attach at %s"), *(AttachedSocketName.ToString()));
+		if (AttachedSocketName != NAME_None)
+		{
+			EquippedWeapon->ThrowWeapon(this, AttachedSocketName);
+			//EquippedWeapon->SetWeaponOwner(nullptr);
+			EquippedWeapon = nullptr;
+			//FVector WeaponThrow = FMath::VInterpTo(EquippedWeapon->GetActorLocation(), Destination, GetWorld()->GetDeltaSeconds(), 10.f);
+			
+
+		}
+	}
+}
+
+void AMainCharacter::RMBUp()
+{
+	
 }
 
 void AMainCharacter::Jump()
