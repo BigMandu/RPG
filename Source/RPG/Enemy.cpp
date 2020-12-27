@@ -42,7 +42,7 @@ AEnemy::AEnemy()
 	CombatSphere->SetupAttachment(GetRootComponent());
 	CombatSphere->InitSphereRadius(80.f);
 	CombatSphere->SetCollisionResponseToChannel(ECollisionChannel::ECC_WorldDynamic, ECollisionResponse::ECR_Ignore);
-
+	
 	//정찰범위 디폴트로 500 설정. BTTask_SearchPatrolLocation에서 사용.
 	PatrolArea = 500.f;
 
@@ -155,6 +155,9 @@ void AEnemy::BeginPlay()
 	AnimInstance->DeactivateCollision.AddUObject(this, &AEnemy::DeactivateCollision);
 
 
+	//카메라 무시
+	GetCapsuleComponent()->SetCollisionResponseToChannel(ECollisionChannel::ECC_Camera, ECollisionResponse::ECR_Ignore);
+	GetMesh()->SetCollisionResponseToChannel(ECollisionChannel::ECC_Camera, ECollisionResponse::ECR_Overlap);
 	
 
 	//Enemy HP BarComponent에 Widgetclass가 없을때

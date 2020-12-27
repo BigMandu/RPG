@@ -57,6 +57,14 @@ public:
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = Camera)
 	float BaseLookUpRate;
 
+
+	//Capsule Component 충돌 관련
+
+	bool bCapsuleHit;
+
+	UFUNCTION()
+	void CapsuleOnHit(UPrimitiveComponent* HitComponent, AActor* OtherActor, UPrimitiveComponent* OtherComp, FVector NormalImpulse, const FHitResult& Hit);
+
 	/*****************************/
 	// Player Input   //
 	/*****************************/
@@ -65,6 +73,7 @@ public:
 	bool bLMBDown;
 	bool bRMBDown;
 	bool bJumpKeyDown;
+	bool bFkeyDown;
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Movement")
 	bool bMoveForward;
@@ -138,7 +147,14 @@ public:
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Combat")
 	UAnimMontage* SprintCombatMontage;
 
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Combat")
+	UAnimMontage* AbilityThrowWeaponMontage;
+
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Combat")
+	UAnimMontage* AbilitySmashMontage;
+
 	FTimerHandle SprintAttackTimer; //SprintAttack시 사용되는 타이머핸들
+	FTimerHandle AbilitySmashHandle; // Ability Smash때 사용되는 타이머 핸들
 
 	float CurHeight;
 
@@ -191,6 +207,9 @@ public:
 	void RMBUp();
 	virtual void Jump() override;
 	virtual void StopJumping() override;
+
+	void FKeyDown();
+	void FKeyUp();
 
 	/*******************************/
 	//-- Player Movement 함수 ---//
@@ -253,6 +272,12 @@ public:
 	void SptirntAttack();
 
 	bool CalcAirAttack();
+
+	void Ability_ThrowWeapon();
+	void Ability_ThrowWeapon_Finish();
+
+	void Ability_Smash();
+	void Ability_Smash_Finish();
 
 	UFUNCTION(BlueprintCallable)
 	void ComboSave();

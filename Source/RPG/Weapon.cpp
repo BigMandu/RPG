@@ -44,6 +44,8 @@ void AWeapon::PostInitializeComponents() //AddDynamic을 여기서 해주자.
 	CombatCollision->SetCollisionResponseToChannels(ECollisionResponse::ECR_Ignore);
 	CombatCollision->SetCollisionResponseToChannel(ECollisionChannel::ECC_Pawn, ECollisionResponse::ECR_Overlap); //Pawn에 대한 충돌만 overlap.
 
+	CombatCollision->SetCollisionResponseToChannel(ECollisionChannel::ECC_WorldStatic, ECollisionResponse::ECR_Block); //Staticmesh를 통과못하게 한번 해봤다.
+
 }
 
 
@@ -99,21 +101,30 @@ void AWeapon::Equip(class ACharacter* Character)
 
 		const USkeletalMeshSocket* RightWeaponSocket = MainChar->GetMesh()->GetSocketByName("hand_r_weapon");
 
+		if (EquipedSound)
+		{
+			if (WeaponState == EWeaponState::EWS_Equipped)  //칼을 던지고 다시 받을때 재생되는 소리 따로 해둠.
+			{
+				UGameplayStatics::PlaySound2D(this, AbilityReceiveSound);
+			}
+			else
+			{
+				UGameplayStatics::PlaySound2D(this, EquipedSound);
+			}
+		}
+
+		if(bIdleParticle)
+		{ 
+			IdleParticle->Deactivate();
+		}
 		if (RightWeaponSocket)
 		{
+			SetWeaponState(EWeaponState::EWS_Equipped);
 			bRotate = false;
 			//SetWeaponState(EWeaponState::EWS_Equipped);
 			RightWeaponSocket->AttachActor(this, MainChar->GetMesh());
 			MainChar->SetEquippedWeapon(this); //Main의 SetEquipped Weapon 호출.
 			MainChar->SetActiveOverlappingItem(nullptr);
-		}
-		if (EquipedSound)
-		{
-			UGameplayStatics::PlaySound2D(this, EquipedSound);
-		}
-		if(bIdleParticle)
-		{ 
-			IdleParticle->Deactivate();
 		}
 	}
 
@@ -150,20 +161,23 @@ void AWeapon::ThrowWeapon(ACharacter* Character, FName SocketName)
 		Time = 0.f;
 		AlphaTime = 0.f;
 
-
 		GetWorldTimerManager().SetTimer(WeaponThrowHandle, [=] {
 			Time += GetWorld()->GetDeltaSeconds();
 			AlphaTime = Time / 1.f;
+			if (AbilityThrowSound)
+			{
+				UGameplayStatics::PlaySound2D(this, AbilityThrowSound);
+			}
 
-			FVector WeaponLocation = FMath::Lerp(CurWeaponLocation, Destination, AlphaTime);
-			SetActorLocation(WeaponLocation);
+			FVector WeaponLocation = FMath::Lerp(CurWeaponLocation, Destination, AlphaTime); //AlphaTime때의 위치를 나타낸다.
+			SetActorLocation(WeaponLocation);  //구한 위치를 계속해서 업데이트 해준다.
 
 			FRotator WeaponRotation = GetActorRotation();
-			WeaponRotation.Roll += GetWorld()->GetDeltaSeconds() * 2000.f;
-			FRotator WeaponRolling = FRotator(90.f, 0.f, WeaponRotation.Roll);
+			WeaponRotation.Roll += GetWorld()->GetDeltaSeconds() * 2000.f; //2000속도의 속도로 회전하게 한다.
+			FRotator WeaponRolling = FRotator(90.f, 0.f, WeaponRotation.Roll);  //vertical로 수평하게 하고 회전하게 한다.
 			SetActorRotation(WeaponRolling);
 
-			if (AlphaTime >= 1.f)
+			if (AlphaTime >= 1.f) //AlphaTime이 1일때 끝남.
 			{
 				UE_LOG(LogTemp, Warning, TEXT("Alpha Time is over 1.f"));
 				ReceiveWeapon(Main);
@@ -181,6 +195,7 @@ void AWeapon::ReceiveWeapon(ACharacter* Character)
 	AMainCharacter* Main = Cast<AMainCharacter>(Character);
 	if (Main)
 	{
+		Main->Ability_ThrowWeapon_Finish();
 		GetWorldTimerManager().ClearTimer(WeaponThrowHandle);
 		//SetActorRotation(InitRotation);
 		SetActorLocation(Main->GetActorLocation());

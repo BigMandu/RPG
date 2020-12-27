@@ -38,6 +38,13 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Item | Sound")
 	class USoundCue* EquipedSound;
 
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Item | Sound")
+	class USoundCue* AbilityThrowSound;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Item | Sound")
+	class USoundCue* AbilityReceiveSound;
+
 	//Particle
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Item | Particle")
 	bool bIdleParticle;
@@ -72,7 +79,9 @@ public:
 	void CombatCollisionOverlapEnd(UPrimitiveComponent* OverlappedComponent, AActor* OtherActor, UPrimitiveComponent* OtherComp, int32 OtherBodyIndex);
 
 
-	//이 무기를 갖고있는 Player를 가져온다.
+	/********************************/
+	//  Weapon Owner관련  이 무기를 갖고있는 Player를 가져온다.
+	/********************************/
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Item")
 	class ACharacter* WeaponOwner;
 

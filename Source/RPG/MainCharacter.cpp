@@ -28,6 +28,9 @@ AMainCharacter::AMainCharacter()
 	////////////TEST AI/////////////
 	StimuliSourceComponent = CreateDefaultSubobject<UAIPerceptionStimuliSourceComponent>(TEXT("StimuliSourceComponent"));
 
+
+	bCapsuleHit = false;
+
 	/*******************************/
 	//------   카메라  관련   ------//
 	/*******************************/
@@ -53,12 +56,15 @@ AMainCharacter::AMainCharacter()
 	/*******************************/
 	//-- Player Input ---//
 	/*******************************/
+	bLMBDown = false;
+	bRMBDown = false;
 	bShiftKeyDown = false;
 	bEKeyDown = false;
 	bShiftKeyDown = false;
 	bJumpKeyDown = false;
 	bMoveForward = false;
 	bMoveRight = false;
+	bFkeyDown = false;
 
 	/*******************************/
 	//-- Player Movement  ---//
@@ -122,6 +128,8 @@ void AMainCharacter::BeginPlay()
 	////////////TEST AI/////////////
 	StimuliSourceComponent->bAutoRegister = true;
 	StimuliSourceComponent->RegisterForSense(SenseSight); //Sight Sense를 등록.
+
+	GetCapsuleComponent()->OnComponentHit.AddDynamic(this, &AMainCharacter::CapsuleOnHit);
 }
 
 // Called every frame
@@ -171,11 +179,11 @@ void AMainCharacter::Tick(float DeltaTime)
 		if (GetCharacterMovement()->IsFalling()) //공중에서 떨어질때 Damage를 계산 및 적용.
 		{
 			AfterHeight = 0.f;
-			FallingDamageCalc();
+			FallingDamageCalc(); //낙하시 최대 높이를 구하는함수.
 		}
 		else if (GetCharacterMovement()->IsFalling() == false)
 		{
-			AfterHeight = OutHit.ImpactPoint.Z;
+			AfterHeight = OutHit.ImpactPoint.Z; //착지한 현재 높이를 넘겨준다.
 			TakeFallingDamage(AfterHeight);
 		}
 	}
@@ -313,6 +321,8 @@ void AMainCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputCompo
 
 	PlayerInputComponent->BindAction("RMB", EInputEvent::IE_Pressed, this, &AMainCharacter::RMBDown);
 	PlayerInputComponent->BindAction("RMB", EInputEvent::IE_Released, this, &AMainCharacter::RMBUp);
+	PlayerInputComponent->BindAction("Ability_F", EInputEvent::IE_Pressed, this, &AMainCharacter::FKeyDown);
+	PlayerInputComponent->BindAction("Ability_F", EInputEvent::IE_Released, this, &AMainCharacter::FKeyUp);
 
 }
 
@@ -369,25 +379,13 @@ void AMainCharacter::LMBUp()
 
 void AMainCharacter::RMBDown()
 {
-	if (EquippedWeapon && !bAttacking)
-	{
-		FName AttachedSocketName = EquippedWeapon->GetAttachParentSocketName();
-		//UE_LOG(LogTemp, Warning, TEXT("Weapon Attach at %s"), *(AttachedSocketName.ToString()));
-		if (AttachedSocketName != NAME_None)
-		{
-			EquippedWeapon->ThrowWeapon(this, AttachedSocketName);
-			//EquippedWeapon->SetWeaponOwner(nullptr);
-			EquippedWeapon = nullptr;
-			//FVector WeaponThrow = FMath::VInterpTo(EquippedWeapon->GetActorLocation(), Destination, GetWorld()->GetDeltaSeconds(), 10.f);
-			
-
-		}
-	}
+	bRMBDown = true;
+	Ability_ThrowWeapon();
 }
 
 void AMainCharacter::RMBUp()
 {
-	
+	bRMBDown = false;
 }
 
 void AMainCharacter::Jump()
@@ -406,6 +404,28 @@ void AMainCharacter::StopJumping()
 	ACharacter::StopJumping();
 	bJumpKeyDown = false;
 }
+
+void AMainCharacter::FKeyDown()
+{
+	bFkeyDown = true;
+	Ability_Smash();
+}
+
+void AMainCharacter::FKeyUp()
+{
+	bFkeyDown = false;
+}
+
+//CapsuleComponent 충돌 관련
+void AMainCharacter::CapsuleOnHit(UPrimitiveComponent* HitComponent, AActor* OtherActor, UPrimitiveComponent* OtherComp, FVector NormalImpulse, const FHitResult& Hit)
+{
+	if (Hit.bBlockingHit && bAttacking)
+	{
+		bCapsuleHit = true;
+		UE_LOG(LogTemp, Warning, TEXT("Capsule hit! %s"), *(Hit.Actor->GetFName().ToString()));
+	}
+}
+
 
 /*************** Movement **************/
 //////////   Movement 관련 함수  ////////
@@ -572,14 +592,21 @@ void AMainCharacter::FallingDamageCalc() //낙하시 최대 높이를 구한다.
 	if (FallingMaxHeight < CurHeight)
 	{
 		FallingMaxHeight = CurHeight;
-	}	
+	}
 }
 
 void AMainCharacter::TakeFallingDamage(float AfterHeight)
 {
 	//떨어지고 착지 이후에 데미지 계산, 적용 및 초기화를 해준다.
 	
-	 // UKismetMathLibrary::Abs(FallingMaxHeight - AfterHeight)
+
+	UAnimInstance* Anim = GetMesh()->GetAnimInstance();
+	if (Anim->Montage_IsActive(AbilitySmashMontage)) //해당 ability가 재생중(실행중)이면 낙하뎀지 무시.
+	{
+		FallingMaxHeight = 0.f;
+		return;
+	}
+	//떨어질때의 최대높이와 착지후 현재높이의 차이가 자기키의 1.5배가 넘으면 데미지를 받게 했다. -> 높은곳에서 높은곳으로 점프할때 데미지 받는걸 방지하기 위해서.
 	if (FallingMaxHeight-AfterHeight >= GetDefaultHalfHeight() * 3.f) //자기키의  1.5배가 되면 낙하데미지를 받는다. 
 	{
 		FallingDamage = FallingMaxHeight * 0.05f; //높이에서 5%를 데미지로 준다.
@@ -753,8 +780,7 @@ void AMainCharacter::SptirntAttack()
 				else
 				{
 					//UE_LOG(LogTemp, Warning, TEXT("Cur Location : %s -> Target Location : %s"), *CurrentLocation.ToString(), *(OriginLocation + TargetVector).ToString());
-					
-					AddMovementInput(TargetVector, 1.0f * GetVelocity().Size());//캐릭터 속도 비율에 따라 앞으로 움직임.
+					AddMovementInput(TargetVector, 1.0f );
 				}
 
 			}, GetWorld()->GetDeltaSeconds(), true);
@@ -774,6 +800,9 @@ void AMainCharacter::ComboReset()
 {
 	bAttacking = false;
 	bSaveAttack = false;
+	bCapsuleHit = false; //smash ability끝나고 capsule hit을 풀어주기 위함.
+	SetCanBeDamaged(true); //smash ability끝나고 무적을 풀어주기위함.
+
 	AttackCount = 0;
 	if (GetWorldTimerManager().IsTimerActive(SprintAttackTimer))
 	{
@@ -782,6 +811,95 @@ void AMainCharacter::ComboReset()
 	}
 }
 
+void AMainCharacter::Ability_ThrowWeapon()
+{
+	if (bRMBDown)
+	{
+		if (EquippedWeapon && !bAttacking)
+		{
+			FName AttachedSocketName = EquippedWeapon->GetAttachParentSocketName();
+			//UE_LOG(LogTemp, Warning, TEXT("Weapon Attach at %s"), *(AttachedSocketName.ToString()));
+			if (AttachedSocketName != NAME_None)
+			{
+				UAnimInstance* AnimInstance = GetMesh()->GetAnimInstance();
+				if (AnimInstance && AbilityThrowWeaponMontage)
+				{
+					AnimInstance->Montage_Play(AbilityThrowWeaponMontage, 2.25f);
+					AnimInstance->Montage_JumpToSection(FName("Execute"), AbilityThrowWeaponMontage);
+
+					EquippedWeapon->ThrowWeapon(this, AttachedSocketName);
+					//EquippedWeapon->SetWeaponOwner(nullptr);
+					EquippedWeapon = nullptr;
+					//FVector WeaponThrow = FMath::VInterpTo(EquippedWeapon->GetActorLocation(), Destination, GetWorld()->GetDeltaSeconds(), 10.f);
+				}
+
+
+
+			}
+		}
+	}
+}
+
+void AMainCharacter::Ability_ThrowWeapon_Finish()
+{
+	UAnimInstance* AnimInstance = GetMesh()->GetAnimInstance();
+	if (AnimInstance && AbilityThrowWeaponMontage)
+	{
+		AnimInstance->Montage_Play(AbilityThrowWeaponMontage, 1.5f);
+		AnimInstance->Montage_JumpToSection(FName("Finish"), AbilityThrowWeaponMontage);
+	}
+}
+
+void AMainCharacter::Ability_Smash()
+{
+	if (EquippedWeapon && AbilitySmashMontage && !bAttacking && !GetCharacterMovement()->IsFalling())
+	{
+		UAnimInstance* AnimInstance = GetMesh()->GetAnimInstance();
+		if (AnimInstance)
+		{
+			bAttacking = true;
+			FVector OriginLocation = GetActorLocation();
+			FVector TargetLocation = GetActorForwardVector() * 400.f;
+			TargetLocation.Z = 320.f; //타겟목적지의 높이를 설정해줌.
+
+			FVector LastLocation = OriginLocation + TargetLocation;
+
+			AnimInstance->Montage_Play(AbilitySmashMontage, 1.3f);
+			AnimInstance->Montage_JumpToSection(FName("Execute"), AbilitySmashMontage);
+
+			SetCanBeDamaged(false); //해당 스킬 사용중 무적상태를 부여한다.
+		
+			GetWorldTimerManager().SetTimer(AbilitySmashHandle, [=]{
+
+				bool bIsNear = FVector::PointsAreNear(GetActorLocation(), LastLocation, 80.f); //near판정
+				bool bAnimPlay = AnimInstance->Montage_IsActive(AbilitySmashMontage); //anim 재생 판정
+
+				GetCapsuleComponent()->SetCollisionResponseToChannel(ECollisionChannel::ECC_Pawn, ECollisionResponse::ECR_Ignore); //해당 스킬 사용시 pawn을 무시한다 ->무적이동상태
+
+				//디버깅용
+				//DrawDebugSphere(GetWorld(), LastLocation, 25.f, 6, FColor::Green, false, 4.f, (uint8)nullptr, 1.0f);
+
+				if (bIsNear || bAnimPlay == false || bCapsuleHit == true) //bAnimplay는 혹시모를 버그때문에 넣어뒀다.
+				{
+					Ability_Smash_Finish();
+				}
+				else
+				{
+					GetCharacterMovement()->SetMovementMode(EMovementMode::MOVE_Flying); //이렇게 해주니까 진짜 부드럽게 움직인다. -> 뛰려면 이렇게 해둬야함.
+					AddMovementInput(TargetLocation, 1.0f, true);
+				}
+				}, GetWorld()->GetDeltaSeconds(), true);
+		}
+	}
+}
+
+void AMainCharacter::Ability_Smash_Finish()
+{
+	//bCapsuleHit = false;
+	GetWorldTimerManager().ClearTimer(AbilitySmashHandle);
+	GetCharacterMovement()->SetMovementMode(EMovementMode::MOVE_Walking);
+	GetCapsuleComponent()->SetCollisionResponseToChannel(ECollisionChannel::ECC_Pawn, ECollisionResponse::ECR_Block);
+}
 
 /*******************************/
 //--- Game Level,Save,Load  ---//
