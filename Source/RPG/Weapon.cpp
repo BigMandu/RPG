@@ -43,7 +43,6 @@ void AWeapon::PostInitializeComponents() //AddDynamic을 여기서 해주자.
 
 	CombatCollision->SetCollisionResponseToChannels(ECollisionResponse::ECR_Ignore);
 	CombatCollision->SetCollisionResponseToChannel(ECollisionChannel::ECC_Pawn, ECollisionResponse::ECR_Overlap); //Pawn에 대한 충돌만 overlap.
-
 	CombatCollision->SetCollisionResponseToChannel(ECollisionChannel::ECC_WorldStatic, ECollisionResponse::ECR_Block); //Staticmesh를 통과못하게 한번 해봤다.
 
 }
@@ -126,6 +125,12 @@ void AWeapon::Equip(class ACharacter* Character)
 			MainChar->SetEquippedWeapon(this); //Main의 SetEquipped Weapon 호출.
 			MainChar->SetActiveOverlappingItem(nullptr);
 		}
+
+		
+		if (GetWorldTimerManager().IsTimerActive(WeaponReceiveHandle))
+		{
+			GetWorldTimerManager().ClearTimer(WeaponReceiveHandle);
+		}
 	}
 
 	
@@ -149,8 +154,14 @@ void AWeapon::ThrowWeapon(ACharacter* Character, FName SocketName)
 	{
 		this->DetachFromActor(FDetachmentTransformRules(EDetachmentRule::KeepWorld, EDetachmentRule::KeepWorld, EDetachmentRule::KeepWorld, false));
 		
-		//CollisionVolume->SetCollisionEnabled(ECollisionEnabled::QueryOnly);
+		FVector BeforeBoxExtent = CombatCollision->GetUnscaledBoxExtent(); //기술사용전 박스크기를 저장.
+		FVector ScaledBox = FVector(BeforeBoxExtent.X * 4, BeforeBoxExtent.Y * 2, BeforeBoxExtent.Z * 2.5); //박스의 크기를 크게 해준다.
+
+		CombatCollision->SetBoxExtent(ScaledBox); //박스크기를 늘려줌
 		CombatCollision->SetCollisionEnabled(ECollisionEnabled::QueryOnly);
+		
+		//해당 어빌리티 사용시 폭탄같은걸 제거할 수 있도록 한다.
+		CombatCollision->SetCollisionResponseToChannel(ECollisionChannel::ECC_WorldDynamic, ECollisionResponse::ECR_Overlap);
 
 		FVector Destination = (Main->GetActorForwardVector() * 1600.f) + Main->GetActorLocation();
 		Destination.Z = GetActorLocation().Z;
@@ -159,11 +170,18 @@ void AWeapon::ThrowWeapon(ACharacter* Character, FName SocketName)
 		FRotator InitRotation = GetActorRotation();
 
 		Time = 0.f;
-		AlphaTime = 0.f;
+		AlphaTime = 0.f;		
 
 		GetWorldTimerManager().SetTimer(WeaponThrowHandle, [=] {
 			Time += GetWorld()->GetDeltaSeconds();
 			AlphaTime = Time / 1.f;
+			
+			//디버깅용
+			//if (GEngine)
+			//{
+			//	GEngine->AddOnScreenDebugMessage(-1, 1.f, FColor::Green, FString::Printf(TEXT("Time : %f , AlphaTime : %f"), Time, AlphaTime ));
+			//	UE_LOG(LogTemp, Warning, TEXT("Time : %f , AlphaTime : %f"), Time, AlphaTime);
+			//}
 			if (AbilityThrowSound)
 			{
 				UGameplayStatics::PlaySound2D(this, AbilityThrowSound);
@@ -180,7 +198,7 @@ void AWeapon::ThrowWeapon(ACharacter* Character, FName SocketName)
 			if (AlphaTime >= 1.f) //AlphaTime이 1일때 끝남.
 			{
 				UE_LOG(LogTemp, Warning, TEXT("Alpha Time is over 1.f"));
-				ReceiveWeapon(Main);
+				ReceiveWeapon(Main, BeforeBoxExtent); //원래 박스크기도 넘겨준다.
 			}
 			
 			}, GetWorld()->GetDeltaSeconds(), true);
@@ -190,17 +208,60 @@ void AWeapon::ThrowWeapon(ACharacter* Character, FName SocketName)
 	}
 }
 
-void AWeapon::ReceiveWeapon(ACharacter* Character)
+void AWeapon::ReceiveWeapon(ACharacter* Character, FVector BoxExtent)
 {
 	AMainCharacter* Main = Cast<AMainCharacter>(Character);
 	if (Main)
 	{
-		Main->Ability_ThrowWeapon_Finish();
 		GetWorldTimerManager().ClearTimer(WeaponThrowHandle);
-		//SetActorRotation(InitRotation);
-		SetActorLocation(Main->GetActorLocation());
-		Equip(Main);
-		CombatCollision->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+		
+		Time = 0.f;
+		AlphaTime = 0.f;
+
+		FVector WeaponLocation = GetActorLocation();
+
+
+		CombatCollision->SetCollisionEnabled(ECollisionEnabled::QueryOnly);
+		CombatCollision->SetCollisionResponseToChannel(ECollisionChannel::ECC_WorldDynamic, ECollisionResponse::ECR_Overlap); //돌아올때 역시 폭탄같은걸 제거할 수 있도록 한다.
+
+		GetWorldTimerManager().SetTimer(WeaponReceiveHandle, [=] {
+			Time += GetWorld()->GetDeltaSeconds();
+			AlphaTime = Time / 1.0f;
+			if (GEngine)
+			{
+				GEngine->AddOnScreenDebugMessage(-1, 1.f, FColor::Blue, FString::Printf(TEXT("Time : %f , AlphaTime : %f"), Time, AlphaTime));
+				UE_LOG(LogTemp, Warning, TEXT("Time : %f , AlphaTime : %f"), Time, AlphaTime);
+			}
+			FVector MainLocation = Main->GetActorLocation();
+			FVector MainOverLocation = FVector(MainLocation.X, MainLocation.Y + 40.f, MainLocation.Z + 80.f); //플레이어의 우측/머리위로 복귀하게 한다. 자연스러운 모션으로 이어지게.
+
+			FVector TargetLocation = FMath::Lerp(WeaponLocation, MainOverLocation, AlphaTime);
+			SetActorLocation(TargetLocation);
+
+			FRotator WeaponRotation = GetActorRotation();
+			WeaponRotation.Roll += GetWorld()->GetDeltaSeconds() * 1500.f; 
+			FRotator WeaponRolling = FRotator(90.f, 0.f, WeaponRotation.Roll);
+			SetActorRotation(WeaponRolling);
+
+			if (AlphaTime >= 0.9f)
+			{
+				UE_LOG(LogTemp, Warning, TEXT("Alpha Time is over 0.9"));
+				SetActorRotation(FRotator(75.f, 0.f, 0.f));
+
+				
+				CombatCollision->SetBoxExtent(BoxExtent); //원래 크기로 복구함.
+				CombatCollision->SetCollisionEnabled(ECollisionEnabled::NoCollision); //다시 비활성화를 해준다.
+
+				//Collision 설정 초기화
+				CombatCollision->SetCollisionResponseToChannels(ECollisionResponse::ECR_Ignore);
+				CombatCollision->SetCollisionResponseToChannel(ECollisionChannel::ECC_Pawn, ECollisionResponse::ECR_Overlap);
+				CombatCollision->SetCollisionResponseToChannel(ECollisionChannel::ECC_WorldStatic, ECollisionResponse::ECR_Block);
+
+				Equip(Main);
+				Main->Ability_ThrowWeapon_Finish();
+			}
+
+			}, GetWorld()->GetDeltaSeconds(), true);		
 	}
 }
 

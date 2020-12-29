@@ -102,10 +102,11 @@ public:
 	void Equip(class ACharacter* Character, const USkeletalMeshSocket* Socket);
 
 	void ThrowWeapon(ACharacter* Character, FName SocketName);
-	void ReceiveWeapon(ACharacter* Character);
+	void ReceiveWeapon(ACharacter* Character, FVector BoxExtent);
 	float Time;
 	float AlphaTime;
 	FTimerHandle WeaponThrowHandle;
+	FTimerHandle WeaponReceiveHandle;
 
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadWrite, Category = "Item")

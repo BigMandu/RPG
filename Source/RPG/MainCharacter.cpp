@@ -5,6 +5,7 @@
 #include "Weapon.h"
 #include "Enemy.h"
 #include "MainPlayerController.h"
+#include "Explosive.h"
 #include "Camera/CameraComponent.h"
 #include "GameFramework/SpringArmComponent.h"
 #include "GameFramework/CharacterMovementComponent.h"
@@ -18,6 +19,7 @@
 #include "Components/TimelineComponent.h"
 #include "Components/CapsuleComponent.h"
 #include "Components/BoxComponent.h"
+
 
 // Sets default values
 AMainCharacter::AMainCharacter()
@@ -112,6 +114,7 @@ AMainCharacter::AMainCharacter()
 	/*******************************/
 	bAttacking = false;
 	bSaveAttack = false;
+	bAbilitySmash = false;
 	AttackCount = 0;
 	CurHeight = 0.f;
 
@@ -528,63 +531,117 @@ void AMainCharacter::AttackGiveDamage(AEnemy* DamagedEnemy, float WeaponDamage) 
 	//UE_LOG(LogTemp, Warning, TEXT("Total Damage is : %f"), PlayerDamage + WeaponDamage);
 }
 
+
 //범위공격, AnimNotifyState_RangeAttack에서 호출함( 애님 노티파이 스테이트)
 void AMainCharacter::AttackRangeDamage() //Player의 범위 공격 (스킬 같은것.)
 {
 	//UE_LOG(LogTemp, Warning, TEXT("MainCharacter::AttackRangeDamage()"));
-	FCollisionQueryParams Params(FName(TEXT("PlayerRangeDamage")), false, this);
-	TArray<FHitResult>OutHit;
-	FVector StartLocation = GetActorLocation(); //StartLocation
-	FVector WeaponLength = EquippedWeapon->CombatCollision->GetScaledBoxExtent() * 2.0f;
 
-	FVector EndLocation = GetActorForwardVector() * WeaponLength.Z + StartLocation;
-
-	//Weapon의 CombatCollision * 2 크기를 가진 캡슐모양으로 판정한다.
-	GetWorld()->SweepMultiByChannel(OutHit, StartLocation, EndLocation, FQuat::Identity, 
-		ECollisionChannel::ECC_Pawn, FCollisionShape::MakeCapsule(WeaponLength), Params);
-	
+	//Damage부터 확인.
 	float Damage = PlayerDamage;
-	bool AirAttack = false;
-	if (GetCharacterMovement()->IsFalling()) //떨어지고 있으면, 낙하높이에 15%의 데미지를 더 줌.
+	if (GetCharacterMovement()->IsFalling()) //떨어지고 있으면, 낙하높이에 15%의 데미지를 더 줌. 
 	{
-		AirAttack = true;
 		Damage += CurHeight * 0.15f;
 		//UE_LOG(LogTemp, Warning, TEXT("Damage is : %f, Weapon Damage is : %f, TotalDamage is : %f"), Damage, EquippedWeapon->WeaponDamage, Damage + EquippedWeapon->WeaponDamage);
 	}
 
+	TArray<FHitResult>OutHit;
+	FVector StartLocation = GetActorLocation(); //StartLocation
+	FVector EndLocation;
+	ECollisionChannel CollisionChannel;
+	FCollisionShape CollisionShape;
+	FCollisionQueryParams Params(TEXT("PlayerRangeDamage"), false, this);
+	FCollisionResponseParams ResponseParams;
+
+	//디버깅용 변수
+	FVector WeaponLength = EquippedWeapon->CombatCollision->GetScaledBoxExtent() * 2.0f;
 	float ZSize = WeaponLength.Z;
 	float YSize = WeaponLength.Y;
 	float XSize = WeaponLength.X;
 
+
+	//스킬 사용시 EndLocation, Collision을 다르게 지정해준다.
+	if (bAbilitySmash)
+	{
+		
+		EndLocation = GetActorLocation();
+		CollisionChannel = ECollisionChannel::ECC_WorldDynamic; //WorldDynamic 요소를 맞춤(전부다맞춤)
+		CollisionShape = FCollisionShape::MakeSphere(400.f);
+
+		FCollisionObjectQueryParams ObjectParams;
+		ObjectParams.AllDynamicObjects;
+
+		GetWorld()->SweepMultiByObjectType(OutHit, StartLocation, EndLocation, FQuat::Identity, ObjectParams,
+			CollisionShape, Params);
+	}
+	else
+	{
+		EndLocation = GetActorForwardVector() * WeaponLength.Z + StartLocation;
+		CollisionChannel = ECollisionChannel::ECC_Pawn;
+		CollisionShape = FCollisionShape::MakeCapsule(WeaponLength);
+		ResponseParams = FCollisionResponseParams::DefaultResponseParam;
+
+		//Weapon의 CombatCollision * 2 크기를 가진 캡슐모양으로 판정한다.	
+		GetWorld()->SweepMultiByChannel(OutHit, StartLocation, EndLocation, FQuat::Identity,
+			CollisionChannel, CollisionShape, Params, ResponseParams);
+	}
+
 	//디버깅용
 	{
-		DrawDebugCapsule(GetWorld(), EndLocation,
-			ZSize * 0.5 + XSize + YSize, XSize + YSize, FRotationMatrix::MakeFromZ(GetActorForwardVector() * ZSize).ToQuat(),
-			FColor::Red, false, 2.0f);
+		if (bAbilitySmash)
+		{
+			DrawDebugSphere(GetWorld(), GetActorLocation(), 400.f, int32(12), FColor::Red, false, 2.f, (uint8)nullptr, 1.0f);
+		}
+		else
+		{
+			DrawDebugCapsule(GetWorld(), EndLocation,
+				ZSize * 0.5 + XSize + YSize, XSize + YSize, FRotationMatrix::MakeFromZ(GetActorForwardVector() * ZSize).ToQuat(),
+				FColor::Red, false, 2.0f);
+		}
 	}
+	
 
 	if (OutHit.Num() == 0) return;
 
 	for (auto Hit : OutHit)
 	{
 		AEnemy* Enemy = Cast<AEnemy>(Hit.GetActor());
-		if (Enemy)
+		AExplosive* Explosive = Cast<AExplosive>(Hit.GetActor());
+		if (bAbilitySmash)
 		{
-			//디버깅용
+			if (Enemy)
 			{
-				DrawDebugCapsule(GetWorld(), EndLocation,
-					ZSize * 0.5 + XSize + YSize, XSize + YSize, FRotationMatrix::MakeFromZ(GetActorForwardVector() * ZSize).ToQuat(),
-					FColor::Green, false, 2.0f);
-				//UE_LOG(LogTemp, Warning, TEXT("Player Range Attack success, Damage is : %f, Weapon Damage is : %f, TotalDamage is : %f"), Damage, EquippedWeapon->WeaponDamage, Damage + EquippedWeapon->WeaponDamage);
+				UE_LOG(LogTemp, Warning, TEXT("victim name is %s"), *(Hit.Actor->GetFName().ToString()));
+				UE_LOG(LogTemp, Warning, TEXT("RangeAttack AbilitySmash Apply Damage"));
+				TArray<AActor*>IgnoreActor;
+
+				UGameplayStatics::ApplyRadialDamage(this, (Damage * 1.5) + EquippedWeapon->WeaponDamage, GetActorLocation(), 600.f, DamageTypeClass, IgnoreActor, this, GetController(), true,
+					ECollisionChannel::ECC_WorldStatic); //마지막 인자값은, 타격 원점과 액터사이에 해당 채널을 막는 액터가 있다면 damamge를 받지 않는다는것임.
+
+				//디버깅용
+				DrawDebugSphere(GetWorld(), GetActorLocation(), 400.f, int32(12), FColor::Green, false, 2.f, (uint8)nullptr, 1.0f);
 			}
-			if (AirAttack == true)
+			if (Explosive)
 			{
-				//Air Attack이면 땅에 떨어지고 난뒤에 Damage적용 하기.
+				Explosive->Delete();
 			}
-			UGameplayStatics::ApplyDamage(Enemy, Damage + EquippedWeapon->WeaponDamage, GetController(), this, DamageTypeClass);
+		}
+		else
+		{
+			if (Enemy)
+			{
+				UE_LOG(LogTemp, Warning, TEXT("RangeAttack Apply Damage"));
+				UGameplayStatics::ApplyDamage(Enemy, Damage + EquippedWeapon->WeaponDamage, GetController(), this, DamageTypeClass);
+				//디버깅용
+				{
+					DrawDebugCapsule(GetWorld(), EndLocation,
+						ZSize * 0.5 + XSize + YSize, XSize + YSize, FRotationMatrix::MakeFromZ(GetActorForwardVector() * ZSize).ToQuat(),
+						FColor::Green, false, 2.0f);
+					//UE_LOG(LogTemp, Warning, TEXT("Player Range Attack success, Damage is : %f, Weapon Damage is : %f, TotalDamage is : %f"), Damage, EquippedWeapon->WeaponDamage, Damage + EquippedWeapon->WeaponDamage);
+				}
+			}
 		}
 	}
-	
 }
 
 void AMainCharacter::FallingDamageCalc() //낙하시 최대 높이를 구한다.
@@ -599,9 +656,7 @@ void AMainCharacter::TakeFallingDamage(float AfterHeight)
 {
 	//떨어지고 착지 이후에 데미지 계산, 적용 및 초기화를 해준다.
 	
-
-	UAnimInstance* Anim = GetMesh()->GetAnimInstance();
-	if (Anim->Montage_IsActive(AbilitySmashMontage)) //해당 ability가 재생중(실행중)이면 낙하뎀지 무시.
+	if (bAbilitySmash == true) //해당 ability가 재생중(실행중)이면 낙하뎀지 무시.
 	{
 		FallingMaxHeight = 0.f;
 		return;
@@ -611,6 +666,7 @@ void AMainCharacter::TakeFallingDamage(float AfterHeight)
 	{
 		FallingDamage = FallingMaxHeight * 0.05f; //높이에서 5%를 데미지로 준다.
 		DecrementHealth(FallingDamage);
+		//디버깅용
 		/*UE_LOG(LogTemp, Warning, TEXT("FMH is : %f, AfterHeight is : %f"), FallingMaxHeight, AfterHeight);
 		UE_LOG(LogTemp, Warning, TEXT("Subtract is : %f"), FallingMaxHeight - AfterHeight);
 		UE_LOG(LogTemp, Warning, TEXT("Falling Damage is : %f"), FallingDamage);*/
@@ -624,7 +680,11 @@ void AMainCharacter::TakeFallingDamage(float AfterHeight)
 float AMainCharacter::TakeDamage(float DamageAmount, struct FDamageEvent const& DamageEvent, class AController* EventInstigator, AActor* DamageCauser)
 {
 	//UE_LOG(LogTemp, Warning, TEXT("MainCharacter::TakeDamage()::::Damage Causer : %s , Damage : %f"), *DamageCauser->GetName(), DamageAmount);
-	DecrementHealth(DamageAmount);
+	
+	if (bAbilitySmash == false) //해당 어빌리티 사용시 Damage를 받지 않기 하기 위함.
+	{
+		DecrementHealth(DamageAmount);
+	}
 	return DamageAmount;
 }
 
@@ -801,6 +861,7 @@ void AMainCharacter::ComboReset()
 	bAttacking = false;
 	bSaveAttack = false;
 	bCapsuleHit = false; //smash ability끝나고 capsule hit을 풀어주기 위함.
+	bAbilitySmash = false;
 	SetCanBeDamaged(true); //smash ability끝나고 무적을 풀어주기위함.
 
 	AttackCount = 0;
@@ -840,7 +901,7 @@ void AMainCharacter::Ability_ThrowWeapon()
 	}
 }
 
-void AMainCharacter::Ability_ThrowWeapon_Finish()
+void AMainCharacter::Ability_ThrowWeapon_Finish() //AWeapon::ReceiveWeapon에서 호출
 {
 	UAnimInstance* AnimInstance = GetMesh()->GetAnimInstance();
 	if (AnimInstance && AbilityThrowWeaponMontage)
@@ -858,6 +919,8 @@ void AMainCharacter::Ability_Smash()
 		if (AnimInstance)
 		{
 			bAttacking = true;
+			bAbilitySmash = true;
+
 			FVector OriginLocation = GetActorLocation();
 			FVector TargetLocation = GetActorForwardVector() * 400.f;
 			TargetLocation.Z = 320.f; //타겟목적지의 높이를 설정해줌.
@@ -893,7 +956,7 @@ void AMainCharacter::Ability_Smash()
 	}
 }
 
-void AMainCharacter::Ability_Smash_Finish()
+void AMainCharacter::Ability_Smash_Finish() //공중에 도착한뒤 풀어주는것.
 {
 	//bCapsuleHit = false;
 	GetWorldTimerManager().ClearTimer(AbilitySmashHandle);

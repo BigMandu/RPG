@@ -413,12 +413,16 @@ void AEnemy::DecrementalHealth(float TakeDamage)
 
 float AEnemy::TakeDamage(float DamageAmount, struct FDamageEvent const& DamageEvent, class AController* EventInstigator, AActor* DamageCauser)
 {
-	//인식하지 못했는데 데미지를 받았으면 바로 돌게하기 위함
+	//죽지 않았을때만 반응하도록.
+	if(EnemyMovementStatus != EEnemyMovementStatus::EMS_Dead)
 	{
+		//인식하지 못했는데 데미지를 받았으면 바로 돌게하기 위함
 		AIController->UpdateTargetKey(DamageCauser);
 		RotateToTarget();
+
+		DecrementalHealth(DamageAmount);
+		return DamageAmount;
 	}
-	DecrementalHealth(DamageAmount);
 	return DamageAmount;
 }
 

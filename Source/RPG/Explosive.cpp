@@ -15,10 +15,11 @@ AExplosive::AExplosive()
 void AExplosive::OnOverlapBegin(UPrimitiveComponent* OverlappedComponent, AActor* OtherActor, UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult)
 {
 	Super::OnOverlapBegin(OverlappedComponent, OtherActor, OtherComp, OtherBodyIndex, bFromSweep, SweepResult);
-	//UE_LOG(LogTemp, Warning, TEXT("Explosive::OnOverlap Begin"));
+	UE_LOG(LogTemp, Warning, TEXT("Explosive::OnOverlap Begin"));
 
 	if (OtherActor)
 	{
+		UE_LOG(LogTemp, Warning, TEXT("overlap actor is %s"), *(OtherActor->GetFName().ToString()));
 		AMainCharacter* MainChar = Cast<AMainCharacter>(OtherActor);
 		AEnemy* Enemy = Cast<AEnemy>(OtherActor);
 		if (MainChar || Enemy)
@@ -35,6 +36,7 @@ void AExplosive::OnOverlapBegin(UPrimitiveComponent* OverlappedComponent, AActor
 		}
 		Destroy();
 	}
+	
 
 }
 
@@ -42,4 +44,17 @@ void AExplosive::OnOverlapEnd(UPrimitiveComponent* OverlappedComponent, AActor* 
 {
 	Super::OnOverlapEnd(OverlappedComponent, OtherActor, OtherComp, OtherBodyIndex);
 	UE_LOG(LogTemp, Warning, TEXT("Explosive::OnOverlap End"));
+}
+
+void AExplosive::Delete()
+{
+	if (OverlapParticle)
+	{
+		UGameplayStatics::SpawnEmitterAtLocation(GetWorld(), OverlapParticle, GetActorLocation(), FRotator(0.f), true);
+	}
+	if (OverlapSound)
+	{
+		UGameplayStatics::PlaySound2D(this, OverlapSound);
+	}
+	Destroy();
 }

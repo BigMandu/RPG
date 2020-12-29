@@ -162,7 +162,6 @@ public:
 
 	float FallingDamage;
 	float FallingMaxHeight;
-//	bool bFell;
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Combat")
 	bool bAttacking;
@@ -172,6 +171,8 @@ public:
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Combat")
 	int32 AttackCount;
+
+	bool bAbilitySmash;
 
 	//UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Combat")
 	//AController* Instigator; //ApplyDamage에 넘겨줄 컨트롤러
