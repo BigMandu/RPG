@@ -452,7 +452,7 @@ void AEnemy::DeathEnd() //Die함수에서 재생하는 Animation의 Notify에서 호출.
 	GetMesh()->bNoSkeletonUpdate = true;
 }
 
-void AEnemy::DeathClear()
+void AEnemy::DeathClear() //바로위 DeathEnd함수에서 타이머가 되면 호출됨.
 {
 	SpawnLoot();
 	if (LeftWeapon)
@@ -568,7 +568,7 @@ void AEnemy::Attack(UBlackboardComponent* BBComp)
 							FAIMoveRequest MoveReq;
 							MoveReq.SetGoalActor(MainChar);
 							//MoveReq.SetGoalLocation(DashVector + CurrentVector);
-							MoveReq.SetStopOnOverlap(true); //추가해봄;
+							MoveReq.SetAcceptanceRadius(1.f);
 							AIController->MoveTo(MoveReq);
 						}
 					}, 1.0f, true);

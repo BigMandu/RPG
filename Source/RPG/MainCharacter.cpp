@@ -504,7 +504,7 @@ void AMainCharacter::CharacterRotate() //공격때 사용함.
 }
 
 /************ Money **************/
-///////// Coin, Soul 관련 함수 /////
+///////// Pickup 관련 함수 /////
 /*********************************/
 void AMainCharacter::IncrementCoin(int32 Amount)
 {
@@ -514,6 +514,15 @@ void AMainCharacter::IncrementCoin(int32 Amount)
 void AMainCharacter::IncrementSoul(int32 Amount)
 {
 	Souls += Amount;
+}
+
+void AMainCharacter::IncrementHealth(float Amount)
+{
+	Health += Amount;
+	if (Health + Amount >= MaxHealth)
+	{
+		Health = MaxHealth;
+	}
 }
 
 /*************** Damage ****************/

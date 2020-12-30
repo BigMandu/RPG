@@ -9,6 +9,7 @@
 APickup::APickup()
 {
 	CoinCount = 1;
+	HealthPoint = 50.f;
 }
 
 void APickup::OnOverlapBegin(UPrimitiveComponent* OverlappedComponent, AActor* OtherActor, UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult)
@@ -20,11 +21,20 @@ void APickup::OnOverlapBegin(UPrimitiveComponent* OverlappedComponent, AActor* O
 		AMainCharacter* MainChar = Cast<AMainCharacter>(OtherActor);
 		if (MainChar)
 		{
-			MainChar->IncrementCoin(CoinCount);
+			if (PickupType == EPickupType::EPT_Coin)
+			{
+				MainChar->IncrementCoin(CoinCount);
+			}
+			else if (PickupType == EPickupType::EPT_Potion)
+			{
+				MainChar->IncrementHealth(HealthPoint);
+			}
 			Destroy();
 			if (OverlapParticle)
 			{
-				UGameplayStatics::SpawnEmitterAtLocation(GetWorld(), OverlapParticle, GetActorLocation(), FRotator(0.f), true);
+				FVector PlayerLocation = MainChar->GetActorLocation();
+				FVector PlayerOverLocation = FVector(PlayerLocation.X, PlayerLocation.Y, PlayerLocation.Z + 85.f);
+				UGameplayStatics::SpawnEmitterAtLocation(GetWorld(), OverlapParticle, PlayerOverLocation, FRotator(0.f), true);
 			}
 			if (OverlapSound)
 			{
@@ -37,5 +47,5 @@ void APickup::OnOverlapBegin(UPrimitiveComponent* OverlappedComponent, AActor* O
 void APickup::OnOverlapEnd(UPrimitiveComponent* OverlappedComponent, AActor* OtherActor, UPrimitiveComponent* OtherComp, int32 OtherBodyIndex)
 {
 	Super::OnOverlapEnd(OverlappedComponent, OtherActor, OtherComp, OtherBodyIndex);
-	UE_LOG(LogTemp, Warning, TEXT("Pickup::OnOverlap End"));
+	//UE_LOG(LogTemp, Warning, TEXT("Pickup::OnOverlap End"));
 }

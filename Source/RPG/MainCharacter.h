@@ -230,6 +230,8 @@ public:
 	void IncrementSoul(int32 Amount);
 	//void DecrementSoul(int32 Amount);
 
+	void IncrementHealth(float Amount);
+
 	/*******************************/
 	//---     Player Weapon     ---//
 	/*******************************/

@@ -9,6 +9,15 @@
 /**
  * 
  */
+UENUM(BlueprintType)
+enum class EPickupType : uint8
+{
+	EPT_Potion	UMETA(DisplayName = "Potion"),
+	EPT_Coin	UMETA(DisplayName = "Coin"),
+
+	EPT_MAX		UMETA(DisplayName = "DefaultMAX")
+};
+
 UCLASS()
 class RPG_API APickup : public AItem
 {
@@ -16,8 +25,14 @@ class RPG_API APickup : public AItem
 public:
 	APickup();
 
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Coin)
+	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite, Category = "Pickup")
+	EPickupType PickupType;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Pickup | Coin")
 	int32 CoinCount;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Pickup | Potion")
+	float HealthPoint;
 
 	virtual void OnOverlapBegin(UPrimitiveComponent* OverlappedComponent, AActor* OtherActor, UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult) override;
 	virtual void OnOverlapEnd(UPrimitiveComponent* OverlappedComponent, AActor* OtherActor, UPrimitiveComponent* OtherComp, int32 OtherBodyIndex) override;
