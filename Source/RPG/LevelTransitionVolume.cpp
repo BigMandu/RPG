@@ -22,7 +22,7 @@ ALevelTransitionVolume::ALevelTransitionVolume()
 	TransitionVolume->OnComponentBeginOverlap.AddDynamic(this, &ALevelTransitionVolume::OnOverlapBegin);
 
 }
-
+ 
 // Called when the game starts or when spawned
 void ALevelTransitionVolume::BeginPlay()
 {

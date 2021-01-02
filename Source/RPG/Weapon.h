@@ -91,8 +91,11 @@ public:
 	/*******************************/
 	//---      Weapon Stats    ---//
 	/*******************************/
-	UPROPERTY(VisibleAnywhere, BlueprintReadWrite, Category = "Item | Stats")
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Item | Stats")
 	float WeaponDamage;
+
+	UPROPERTY(EditDefaultsOnly, Category = "SaveGameData")
+	FString WeaponName;
 
 	/*******************************/
 	//---      Weapon State     ---//
@@ -101,7 +104,7 @@ public:
 	void Equip(class ACharacter* Character);
 	void Equip(class ACharacter* Character, const USkeletalMeshSocket* Socket);
 
-	void ThrowWeapon(ACharacter* Character, FName SocketName);
+	void ThrowWeapon(ACharacter* Character, FName SocketName, float AbilityDistance);
 	void ReceiveWeapon(ACharacter* Character, FVector BoxExtent);
 	float Time;
 	float AlphaTime;

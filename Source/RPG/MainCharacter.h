@@ -68,6 +68,7 @@ public:
 	/*****************************/
 	// Player Input   //
 	/*****************************/
+	bool bESCKeyDown;
 	bool bShiftKeyDown;
 	bool bEKeyDown;
 	bool bLMBDown;
@@ -100,6 +101,12 @@ public:
 	int32 Coins;
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Player Stats");
 	int32 Souls;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Player Stats");
+	float ThrowAbility_Distance;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Player Stats");
+	float SmashAbility_Damage;
 
 	/*******************************/
 	//-- Player Movement   ---//
@@ -198,6 +205,8 @@ public:
 	/*****************************/
 	// Player Input 함수  //
 	/*****************************/
+	void ESCKeyDown();
+	void ESCKeyUp();
 	void ShiftKeyDown();
 	void ShiftKeyUp();
 	void EKeyDown();
@@ -295,8 +304,17 @@ public:
 	/*******************************/
 	//--- Game Level,Save,Load  ---//
 	/*******************************/
-	//Level TransitionVolume에 Overlap될때 호출될 함수.
+
+	UFUNCTION(BlueprintCallable)
 	void SwitchLevel(FName LevelName);
 
+	UFUNCTION(BlueprintCallable)
+	void SaveGame();
+
+	UFUNCTION(BlueprintCallable)
+	void LoadGame(bool bSwitchLevel);
+
+	UPROPERTY(EditDefaultsOnly, Category = "SaveGameData")
+	TSubclassOf<class AItemSave> WeaponSave;
 };
 

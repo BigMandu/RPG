@@ -19,6 +19,8 @@
 #include "Components/TimelineComponent.h"
 #include "Components/CapsuleComponent.h"
 #include "Components/BoxComponent.h"
+#include "SaveGameCustom.h"
+#include "ItemSave.h"
 
 
 // Sets default values
@@ -108,6 +110,9 @@ AMainCharacter::AMainCharacter()
 
 	Coins = 0;
 	Souls = 0;
+
+	ThrowAbility_Distance = 800.f;
+	SmashAbility_Damage = 200.f;
 	
 	/*******************************/
 	//***** Player Combat  *****//
@@ -125,7 +130,7 @@ void AMainCharacter::BeginPlay()
 {
 	Super::BeginPlay();
 	
-
+	//bSwitchLevel = false;
 	PlayerController = Cast<AMainPlayerController>(GetController());
 
 	////////////TEST AI/////////////
@@ -133,6 +138,15 @@ void AMainCharacter::BeginPlay()
 	StimuliSourceComponent->RegisterForSense(SenseSight); //Sight Sense를 등록.
 
 	GetCapsuleComponent()->OnComponentHit.AddDynamic(this, &AMainCharacter::CapsuleOnHit);
+
+	FString CurMapName = GetWorld()->GetMapName();
+	CurMapName.RemoveFromStart(GetWorld()->StreamingLevelsPrefix);
+	if (CurMapName != TEXT("FirstMap"))
+	{
+		LoadGame(true); //장착된 무기, 스텟들을 로드한다.
+		SaveGame(); //그리고 다시 저장한다.
+	}
+
 }
 
 // Called every frame
@@ -153,7 +167,7 @@ void AMainCharacter::Tick(float DeltaTime)
 		/***Line Trace (캐릭터 밑에서부터 Mesh까지의 거리측정 ****/
 		FHitResult OutHit;
 		FVector StartPoint = GetCharacterMovement()->GetActorFeetLocation();
-		FVector EndPoint = FVector(StartPoint.X, StartPoint.Y, -800.f);
+		FVector EndPoint = FVector(StartPoint.X, StartPoint.Y, -990.f);
 
 		FCollisionQueryParams CollisionParams;
 		//DrawDebugLine(GetWorld(), StartPoint, EndPoint, FColor::Red, false, 1.f, 0, 2); //Line Trace 시각화 Debug
@@ -165,15 +179,16 @@ void AMainCharacter::Tick(float DeltaTime)
 			if (OutHit.bBlockingHit)
 			{
 				CurHeight = StartPoint.Z - OutHit.ImpactPoint.Z;
-				//if (GEngine) //뷰포트 출력
-				//{
-				//	GEngine->AddOnScreenDebugMessage(-1, 1.f, FColor::Green, FString::Printf(TEXT("Start Point : %s"),
-				//		*StartPoint.ToString()));
-				//	GEngine->AddOnScreenDebugMessage(-1, 1.f, FColor::Green, FString::Printf(TEXT("Hit Imact Point : %s"),
-				//		*OutHit.ImpactPoint.ToString()));
-				//	GEngine->AddOnScreenDebugMessage(-1, 1.f, FColor::Red, FString::Printf(TEXT("Calc Height : %.2f"),
-				//		CurHeight));
-				//}
+				//디버기용
+				if (GEngine) //뷰포트 출력
+				{
+					GEngine->AddOnScreenDebugMessage(-1, 1.f, FColor::Green, FString::Printf(TEXT("Start Point : %s"),
+						*StartPoint.ToString()));
+					GEngine->AddOnScreenDebugMessage(-1, 1.f, FColor::Green, FString::Printf(TEXT("Hit Imact Point : %s"),
+						*OutHit.ImpactPoint.ToString()));
+					GEngine->AddOnScreenDebugMessage(-1, 1.f, FColor::Red, FString::Printf(TEXT("Calc Height : %.2f"),
+						CurHeight));
+				}
 			}
 		}
 
@@ -313,6 +328,8 @@ void AMainCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputCompo
 	PlayerInputComponent->BindAxis("TurnRate", this, &AMainCharacter::TurnAtRate);
 	PlayerInputComponent->BindAxis("LookUpRate", this, &AMainCharacter::LookUpRate);
 
+	PlayerInputComponent->BindAction("ESC", EInputEvent::IE_Pressed, this, &AMainCharacter::ESCKeyDown);
+	PlayerInputComponent->BindAction("ESC", EInputEvent::IE_Released, this, &AMainCharacter::ESCKeyUp);
 	PlayerInputComponent->BindAction("Jump", EInputEvent::IE_Pressed, this, &AMainCharacter::Jump);
 	PlayerInputComponent->BindAction("Jump", EInputEvent::IE_Released, this, &ACharacter::StopJumping);
 	PlayerInputComponent->BindAction("Sprint", EInputEvent::IE_Pressed, this, &AMainCharacter::ShiftKeyDown);
@@ -332,6 +349,20 @@ void AMainCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputCompo
 /*************** Input **************/
 //////////   Input 관련 함수  ////////
 /**************************************/
+void AMainCharacter::ESCKeyDown()
+{
+	bESCKeyDown = true;
+	if (PlayerController)
+	{
+		PlayerController->TogglePauseMenu();
+	}
+}
+
+void AMainCharacter::ESCKeyUp()
+{
+	bESCKeyDown = false;
+}
+
 void AMainCharacter::ShiftKeyDown()
 {
 	bShiftKeyDown = true;
@@ -624,7 +655,7 @@ void AMainCharacter::AttackRangeDamage() //Player의 범위 공격 (스킬 같은것.)
 				UE_LOG(LogTemp, Warning, TEXT("RangeAttack AbilitySmash Apply Damage"));
 				TArray<AActor*>IgnoreActor;
 
-				UGameplayStatics::ApplyRadialDamage(this, (Damage * 1.5) + EquippedWeapon->WeaponDamage, GetActorLocation(), 600.f, DamageTypeClass, IgnoreActor, this, GetController(), true,
+				UGameplayStatics::ApplyRadialDamage(this, SmashAbility_Damage + EquippedWeapon->WeaponDamage, GetActorLocation(), 600.f, DamageTypeClass, IgnoreActor, this, PlayerController, true,
 					ECollisionChannel::ECC_WorldStatic); //마지막 인자값은, 타격 원점과 액터사이에 해당 채널을 막는 액터가 있다면 damamge를 받지 않는다는것임.
 
 				//디버깅용
@@ -640,7 +671,7 @@ void AMainCharacter::AttackRangeDamage() //Player의 범위 공격 (스킬 같은것.)
 			if (Enemy)
 			{
 				UE_LOG(LogTemp, Warning, TEXT("RangeAttack Apply Damage"));
-				UGameplayStatics::ApplyDamage(Enemy, Damage + EquippedWeapon->WeaponDamage, GetController(), this, DamageTypeClass);
+				UGameplayStatics::ApplyDamage(Enemy, Damage + EquippedWeapon->WeaponDamage, PlayerController, this, DamageTypeClass);
 				//디버깅용
 				{
 					DrawDebugCapsule(GetWorld(), EndLocation,
@@ -676,9 +707,9 @@ void AMainCharacter::TakeFallingDamage(float AfterHeight)
 		FallingDamage = FallingMaxHeight * 0.05f; //높이에서 5%를 데미지로 준다.
 		DecrementHealth(FallingDamage);
 		//디버깅용
-		/*UE_LOG(LogTemp, Warning, TEXT("FMH is : %f, AfterHeight is : %f"), FallingMaxHeight, AfterHeight);
+		UE_LOG(LogTemp, Warning, TEXT("FMH is : %f, AfterHeight is : %f"), FallingMaxHeight, AfterHeight);
 		UE_LOG(LogTemp, Warning, TEXT("Subtract is : %f"), FallingMaxHeight - AfterHeight);
-		UE_LOG(LogTemp, Warning, TEXT("Falling Damage is : %f"), FallingDamage);*/
+		UE_LOG(LogTemp, Warning, TEXT("Falling Damage is : %f"), FallingDamage);
 	}
 	//관련 변수 초기화.
 	FallingDamage = 0.f;
@@ -897,7 +928,7 @@ void AMainCharacter::Ability_ThrowWeapon()
 					AnimInstance->Montage_Play(AbilityThrowWeaponMontage, 2.25f);
 					AnimInstance->Montage_JumpToSection(FName("Execute"), AbilityThrowWeaponMontage);
 
-					EquippedWeapon->ThrowWeapon(this, AttachedSocketName);
+					EquippedWeapon->ThrowWeapon(this, AttachedSocketName, ThrowAbility_Distance);
 					//EquippedWeapon->SetWeaponOwner(nullptr);
 					EquippedWeapon = nullptr;
 					//FVector WeaponThrow = FMath::VInterpTo(EquippedWeapon->GetActorLocation(), Destination, GetWorld()->GetDeltaSeconds(), 10.f);
@@ -976,21 +1007,133 @@ void AMainCharacter::Ability_Smash_Finish() //공중에 도착한뒤 풀어주는것.
 /*******************************/
 //--- Game Level,Save,Load  ---//
 /*******************************/
-
-//나중에 MainChar의 Stats과 weapon들을 넘겨줘야함.
-void AMainCharacter::SwitchLevel(FName LevelName)
+void AMainCharacter::SwitchLevel(FName LevelName) //Level Transition Volume에 오버랩되면 호출됨
 {
 	UWorld* World = GetWorld();
 	if (World)
 	{
 		FString MapName = World->GetMapName();
-
 		FName CurrentLevelName(*MapName);
 
 		//변경할 Level과 현재Level이 다를때 Open world를 한다.
 		if (CurrentLevelName != LevelName)
 		{
-			UGameplayStatics::OpenLevel(World, LevelName);
+			SaveGame(); //레벨 전환시에 저장을 해줘야 무기를 갖고온다.
+
+			UGameplayStatics::OpenLevel(World, LevelName); //Open level하면 beginplay가 실행됨.
 		}
 	}
+}
+
+void AMainCharacter::SaveGame()
+{
+	/*CreateSaveGameObject은 SaveGame class를 인자로 받고, SaveGame을 리턴한다.
+	* 따라서 그냥 USaveGameCustom* Savegame = Cast<USaveGameCustom>(ㅇㅇ) 이렇게 해도 되지만 
+	* 가독성을 위해 아래 처럼 해봤다.
+	* 
+	* USaveGameCustom class를 갖고 SaveGameObject를 생성한것을 SaveGame에 지정이됐고
+	* USaveGameCustom의 참조변수에 위에서 생성한 class를 캐스트해서 넣어줬다.
+	*/
+	
+	USaveGame* SaveGame = UGameplayStatics::CreateSaveGameObject(USaveGameCustom::StaticClass());
+	USaveGameCustom* SaveGameInstance = Cast<USaveGameCustom>(SaveGame);
+	if (SaveGameInstance) //이 생성된 객체안에 있는 구조체에 저장할 변수들을 저장한다.
+	{
+		SaveGameInstance->SaveCharacterStats.Health = Health;
+		SaveGameInstance->SaveCharacterStats.MaxHealth = MaxHealth;
+		SaveGameInstance->SaveCharacterStats.Stamina = Stamina;
+		SaveGameInstance->SaveCharacterStats.MaxStamina = MaxStamina;
+		SaveGameInstance->SaveCharacterStats.Coins = Coins;
+		SaveGameInstance->SaveCharacterStats.Souls = Souls;
+		SaveGameInstance->SaveCharacterStats.PlayerDamage = PlayerDamage;
+		SaveGameInstance->SaveCharacterStats.ThrowAbility_Distance = ThrowAbility_Distance;
+		SaveGameInstance->SaveCharacterStats.SmashAbility_Damage = SmashAbility_Damage;
+
+		//Level name저장.
+		FString MapName = GetWorld()->GetMapName();
+		MapName.RemoveFromStart(GetWorld()->StreamingLevelsPrefix); //PIE_0어쩌고 저쩌고를 삭제한다.
+		SaveGameInstance->SaveCharacterStats.MapName = MapName;
+
+		UE_LOG(LogTemp, Warning, TEXT("MapName : %s"), *MapName);
+
+		if (EquippedWeapon) //장착된 무기가 있으면
+		{
+			//장착된 무기의 WEaponName을 저장함.
+			SaveGameInstance->SaveCharacterStats.SaveWeaponName = EquippedWeapon->WeaponName;
+		}
+
+		SaveGameInstance->SaveCharacterStats.Location = GetActorLocation();
+		SaveGameInstance->SaveCharacterStats.Rotation = GetActorRotation();
+
+		//SaveGame Slot에 넣어준다.
+		UGameplayStatics::SaveGameToSlot(SaveGameInstance, SaveGameInstance->SlotName, SaveGameInstance->UserIndex);
+	}
+}
+
+void AMainCharacter::LoadGame(bool bSwitchLevel)
+{
+	/*OpenLevel시 모든게 초기화 되기때문에  Save, Load를 순차적으로 호출해줘야 Data가 이어짐.
+	*
+	* LevelTransition에 overlap된걸 체크해서 체크가 되어있다면
+	* Load시에 Location, Rotation은 로드 안하는걸로 하기.
+	*/
+	
+	//Save때와 마찬가지로, USaveGameCustom 클래스로 savegame object를 생성하고
+	//SaveGame내에 초기화 되어있는 Name과 Index값을 이용해 Slot에해당하는 객체를 불러온다.
+	USaveGameCustom* SaveGame = Cast<USaveGameCustom>(UGameplayStatics::CreateSaveGameObject(USaveGameCustom::StaticClass()));
+
+	USaveGameCustom* LoadGameInstance = Cast<USaveGameCustom>(UGameplayStatics::LoadGameFromSlot(SaveGame->SlotName, SaveGame->UserIndex));
+
+	if (LoadGameInstance)
+	{
+		//맵부터 불러와서 매칭시킨다. 다른맵에서 저장된맵을 로드시에 어차피 Open Level을 호출하면서 밑에껀 다 날아감.
+		//FString CurrentMapName = GetWorld()->GetMapName();
+		//CurrentMapName.RemoveFromStart(GetWorld()->StreamingLevelsPrefix);
+		//if (CurrentMapName != LoadGameInstance->SaveCharacterStats.MapName) //저장된 맵 name과 현재 map name이 다르면
+		//{
+		//	FName OpenMapName = FName(*LoadGameInstance->SaveCharacterStats.MapName); //저장된 맵을 오픈한다.
+		//	UGameplayStatics::OpenLevel(this, OpenMapName);
+		//}
+
+
+		Health = LoadGameInstance->SaveCharacterStats.Health;
+		MaxHealth = LoadGameInstance->SaveCharacterStats.MaxHealth;
+		Stamina = LoadGameInstance->SaveCharacterStats.Stamina;
+		MaxStamina = LoadGameInstance->SaveCharacterStats.MaxStamina;
+		Coins = LoadGameInstance->SaveCharacterStats.Coins;
+		Souls = LoadGameInstance->SaveCharacterStats.Souls;
+		PlayerDamage = LoadGameInstance->SaveCharacterStats.PlayerDamage;
+		ThrowAbility_Distance = LoadGameInstance->SaveCharacterStats.ThrowAbility_Distance;
+		SmashAbility_Damage = LoadGameInstance->SaveCharacterStats.SmashAbility_Damage;
+
+		if (WeaponSave)//AItemSave를 지정해줬으면 (안에 Tmap있음)
+		{
+			AItemSave* Weapon = GetWorld()->SpawnActor<AItemSave>(WeaponSave); //해당 객체를 월드에 스폰하고
+			if (Weapon) //성공적으로 스폰하면
+			{
+				FString WeaponName = LoadGameInstance->SaveCharacterStats.SaveWeaponName; //저장된 무기의 이름을 가져오고
+				if (WeaponName != TEXT(""))
+				{
+					AWeapon* EquipWeapon = GetWorld()->SpawnActor<AWeapon>(Weapon->WeaponData[WeaponName]); //그 이름을 갖고 AWeaponclass를 스폰한다.
+					if (EquipWeapon)
+					{
+						EquipWeapon->SetWeaponOwner(this);
+						EquipWeapon->Equip(this);
+					}
+				}
+			}
+
+		}
+		
+		if (bSwitchLevel != true) //Transition volume에 들어가지 않았다면 Location을 불러와 세팅한다.
+		{
+			SetActorLocation(LoadGameInstance->SaveCharacterStats.Location);
+			SetActorRotation(LoadGameInstance->SaveCharacterStats.Rotation);
+		}
+		else
+		{
+			bSwitchLevel = false;
+		}
+	}
+	
 }

@@ -46,12 +46,6 @@ void AWorldSpawnVolume::BeginPlay()
 	SpawnSelectedActor();
 }
 
-// Called every frame
-//void AWorldSpawnVolume::Tick(float DeltaTime)
-//{
-//	Super::Tick(DeltaTime);
-//
-//}
 
 FVector AWorldSpawnVolume::GetSpawnPoint()
 {

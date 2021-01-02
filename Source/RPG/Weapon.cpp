@@ -147,7 +147,7 @@ void AWeapon::Equip(class ACharacter* Character, const USkeletalMeshSocket* Sock
 	}
 }
 
-void AWeapon::ThrowWeapon(ACharacter* Character, FName SocketName)
+void AWeapon::ThrowWeapon(ACharacter* Character, FName SocketName, float AbilityDistance)
 {
 	AMainCharacter* Main = Cast<AMainCharacter>(Character);
 	if (Main)
@@ -163,7 +163,7 @@ void AWeapon::ThrowWeapon(ACharacter* Character, FName SocketName)
 		//해당 어빌리티 사용시 폭탄같은걸 제거할 수 있도록 한다.
 		CombatCollision->SetCollisionResponseToChannel(ECollisionChannel::ECC_WorldDynamic, ECollisionResponse::ECR_Overlap);
 
-		FVector Destination = (Main->GetActorForwardVector() * 1600.f) + Main->GetActorLocation();
+		FVector Destination = (Main->GetActorForwardVector() * AbilityDistance) + Main->GetActorLocation();
 		Destination.Z = GetActorLocation().Z;
 		FVector CurWeaponLocation = GetActorLocation();
 
