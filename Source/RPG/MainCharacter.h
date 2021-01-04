@@ -81,6 +81,9 @@ public:
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Movement")
 	bool bMoveRight;
 
+
+	bool bClickRMB;
+
 	/*****************************/
 	// Player Stats   //
 	/*****************************/
@@ -104,6 +107,9 @@ public:
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Player Stats");
 	float ThrowAbility_Distance;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Player Stats");
+	float ThrowAbility_Rotation;
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Player Stats");
 	float SmashAbility_Damage;
@@ -163,6 +169,8 @@ public:
 	FTimerHandle SprintAttackTimer; //SprintAttack시 사용되는 타이머핸들
 	FTimerHandle AbilitySmashHandle; // Ability Smash때 사용되는 타이머 핸들
 
+	FTimerHandle RMBDownTimerHandle; //Ability Throw REady때 사용됨.
+
 	float CurHeight;
 
 	FTimerHandle FallingTimer; //낙하 데미지 타이머
@@ -180,6 +188,7 @@ public:
 	int32 AttackCount;
 
 	bool bAbilitySmash;
+	
 
 	//UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Combat")
 	//AController* Instigator; //ApplyDamage에 넘겨줄 컨트롤러
@@ -257,6 +266,11 @@ public:
 	//---     Player Combat     ---//
 	/*******************************/
 
+	bool bJumped;
+	void FallingDamageCalc(float JumpHeight);
+
+	void TakeFallingDamage(float AfterHeight);
+
 	// Enemy Bluepirnt를 위함. EnemyAIController에서 Enemy가 플레이어를 발견시 해당 함수 호출함.
 	/*class AEnemy* HasSpotted;
 	FORCEINLINE void SetEnemyFindPlayer(class AEnemy* WhoSpotted) { HasSpotted = WhoSpotted; }
@@ -271,10 +285,6 @@ public:
 
 	void AttackRangeDamage();
 
-	void FallingDamageCalc();
-
-	void TakeFallingDamage(float AfterHeight);
-
 	virtual float TakeDamage(float DamageAmount, struct FDamageEvent const& DamageEvent, class AController* EventInstigator, AActor* DamageCauser) override;
 
 	void Attack();
@@ -285,6 +295,7 @@ public:
 
 	bool CalcAirAttack();
 
+	void Ability_ThrowWeapon_Before();
 	void Ability_ThrowWeapon();
 	void Ability_ThrowWeapon_Finish();
 
@@ -309,10 +320,15 @@ public:
 	void SwitchLevel(FName LevelName);
 
 	UFUNCTION(BlueprintCallable)
-	void SaveGame();
+	void SaveGame(bool bSwitchLevel);
 
 	UFUNCTION(BlueprintCallable)
 	void LoadGame(bool bSwitchLevel);
+
+	UFUNCTION(BlueprintCallable)
+	void LoadGame_FirstLoad();
+
+	bool bFirstLoad;
 
 	UPROPERTY(EditDefaultsOnly, Category = "SaveGameData")
 	TSubclassOf<class AItemSave> WeaponSave;

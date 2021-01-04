@@ -34,6 +34,9 @@ struct FCharacterStats
 	UPROPERTY(VisibleAnywhere, Category = "SaveGameData");
 	float ThrowAbility_Distance;
 	UPROPERTY(VisibleAnywhere, Category = "SaveGameData");
+	float ThrowAbility_Rotation;
+
+	UPROPERTY(VisibleAnywhere, Category = "SaveGameData");
 	float SmashAbility_Damage;
 
 	UPROPERTY(VisibleAnywhere, Category = "SaveGameData");
@@ -47,6 +50,9 @@ struct FCharacterStats
 
 	UPROPERTY(VisibleAnywhere, Category = "SaveGameData");
 	FRotator Rotation;
+
+	UPROPERTY(VisibleAnywhere, Category = "SaveGameData");
+	bool bFirstLoadGame;
 };
 
 UCLASS()

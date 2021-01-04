@@ -147,7 +147,7 @@ void AWeapon::Equip(class ACharacter* Character, const USkeletalMeshSocket* Sock
 	}
 }
 
-void AWeapon::ThrowWeapon(ACharacter* Character, FName SocketName, float AbilityDistance)
+void AWeapon::ThrowWeapon(ACharacter* Character, FName SocketName, float AbilityDistance, float AbilityRotation)
 {
 	AMainCharacter* Main = Cast<AMainCharacter>(Character);
 	if (Main)
@@ -167,7 +167,7 @@ void AWeapon::ThrowWeapon(ACharacter* Character, FName SocketName, float Ability
 		Destination.Z = GetActorLocation().Z;
 		FVector CurWeaponLocation = GetActorLocation();
 
-		FRotator InitRotation = GetActorRotation();
+		//FRotator InitRotation = GetActorRotation();
 
 		Time = 0.f;
 		AlphaTime = 0.f;		
@@ -182,22 +182,22 @@ void AWeapon::ThrowWeapon(ACharacter* Character, FName SocketName, float Ability
 			//	GEngine->AddOnScreenDebugMessage(-1, 1.f, FColor::Green, FString::Printf(TEXT("Time : %f , AlphaTime : %f"), Time, AlphaTime ));
 			//	UE_LOG(LogTemp, Warning, TEXT("Time : %f , AlphaTime : %f"), Time, AlphaTime);
 			//}
-			if (AbilityThrowSound)
-			{
-				UGameplayStatics::PlaySound2D(this, AbilityThrowSound);
-			}
 
 			FVector WeaponLocation = FMath::Lerp(CurWeaponLocation, Destination, AlphaTime); //AlphaTime때의 위치를 나타낸다.
 			SetActorLocation(WeaponLocation);  //구한 위치를 계속해서 업데이트 해준다.
 
 			FRotator WeaponRotation = GetActorRotation();
-			WeaponRotation.Roll += GetWorld()->GetDeltaSeconds() * 2000.f; //2000속도의 속도로 회전하게 한다.
+			WeaponRotation.Roll += GetWorld()->GetDeltaSeconds() * AbilityRotation; //AbilityRotation 속도로 회전하게 한다.
 			FRotator WeaponRolling = FRotator(90.f, 0.f, WeaponRotation.Roll);  //vertical로 수평하게 하고 회전하게 한다.
 			SetActorRotation(WeaponRolling);
+			if (AbilityThrowSound && WeaponRotation.Roll >= 45.f)
+			{	
+				UGameplayStatics::PlaySound2D(this, AbilityThrowSound);	
+			}
 
 			if (AlphaTime >= 1.f) //AlphaTime이 1일때 끝남.
 			{
-				UE_LOG(LogTemp, Warning, TEXT("Alpha Time is over 1.f"));
+				//UE_LOG(LogTemp, Warning, TEXT("Alpha Time is over 1.f"));
 				ReceiveWeapon(Main, BeforeBoxExtent); //원래 박스크기도 넘겨준다.
 			}
 			
@@ -227,11 +227,11 @@ void AWeapon::ReceiveWeapon(ACharacter* Character, FVector BoxExtent)
 		GetWorldTimerManager().SetTimer(WeaponReceiveHandle, [=] {
 			Time += GetWorld()->GetDeltaSeconds();
 			AlphaTime = Time / 1.0f;
-			if (GEngine)
+			/*if (GEngine)
 			{
 				GEngine->AddOnScreenDebugMessage(-1, 1.f, FColor::Blue, FString::Printf(TEXT("Time : %f , AlphaTime : %f"), Time, AlphaTime));
 				UE_LOG(LogTemp, Warning, TEXT("Time : %f , AlphaTime : %f"), Time, AlphaTime);
-			}
+			}*/
 			FVector MainLocation = Main->GetActorLocation();
 			FVector MainOverLocation = FVector(MainLocation.X, MainLocation.Y + 40.f, MainLocation.Z + 80.f); //플레이어의 우측/머리위로 복귀하게 한다. 자연스러운 모션으로 이어지게.
 
@@ -243,9 +243,13 @@ void AWeapon::ReceiveWeapon(ACharacter* Character, FVector BoxExtent)
 			FRotator WeaponRolling = FRotator(90.f, 0.f, WeaponRotation.Roll);
 			SetActorRotation(WeaponRolling);
 
+			if (AbilityThrowSound && WeaponRotation.Roll >= 45.f)
+			{
+				UGameplayStatics::PlaySound2D(this, AbilityThrowSound);
+			}
 			if (AlphaTime >= 0.9f)
 			{
-				UE_LOG(LogTemp, Warning, TEXT("Alpha Time is over 0.9"));
+				//UE_LOG(LogTemp, Warning, TEXT("Alpha Time is over 0.9"));
 				SetActorRotation(FRotator(75.f, 0.f, 0.f));
 
 				
@@ -279,7 +283,7 @@ void AWeapon::CombatCollisionOverlapBegin(UPrimitiveComponent* OverlappedCompone
 				AEnemy* Enemy = Cast<AEnemy>(OtherActor); //피해자
 				if (Enemy)
 				{
-					UE_LOG(LogTemp, Warning, TEXT("Weapon::Overlap Actor is Enemy"));
+					//UE_LOG(LogTemp, Warning, TEXT("Weapon::Overlap Actor is Enemy"));
 					if (Enemy->HitParticle)
 					{
 						FVector HitLocation = SweepResult.ImpactPoint; //지금 안됨. 
@@ -307,7 +311,7 @@ void AWeapon::CombatCollisionOverlapBegin(UPrimitiveComponent* OverlappedCompone
 				AMainCharacter* MainChar = Cast<AMainCharacter>(OtherActor);
 				if (MainChar)
 				{
-					UE_LOG(LogTemp, Warning, TEXT("Weapon::Enemy Hit Player!"));
+					//UE_LOG(LogTemp, Warning, TEXT("Weapon::Enemy Hit Player!"));
 					OwnerEnemy->AttackGiveDamage(MainChar);
 				}
 			}

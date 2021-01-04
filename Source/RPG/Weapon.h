@@ -104,7 +104,7 @@ public:
 	void Equip(class ACharacter* Character);
 	void Equip(class ACharacter* Character, const USkeletalMeshSocket* Socket);
 
-	void ThrowWeapon(ACharacter* Character, FName SocketName, float AbilityDistance);
+	void ThrowWeapon(ACharacter* Character, FName SocketName, float AbilityDistance, float AbilityRotation);
 	void ReceiveWeapon(ACharacter* Character, FVector BoxExtent);
 	float Time;
 	float AlphaTime;
