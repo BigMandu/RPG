@@ -5,6 +5,8 @@
 #include "MainPlayerController.h"
 #include "Blueprint/UserWidget.h"
 #include "Kismet/GameplayStatics.h"
+#include "Sound/SoundCue.h"
+#include "Components/AudioComponent.h"
 
 void AMainPlayerController::BeginPlay()
 {
@@ -41,6 +43,9 @@ void AMainPlayerController::DisplayPauseMenu_Implementation()
 	if (PauseMenu)
 	{
 		bPauseMenuVisible = true;
+		
+		
+
 		UGameplayStatics::SetGamePaused(this, true); //¾ê¸¦ ¸ÕÀúÇÏ´Ï±î ¾Æ·¡²¨°¡ ½Ï´Ù ¹«½ÃµÊ.
 
 		PauseMenu->SetVisibility(ESlateVisibility::Visible);

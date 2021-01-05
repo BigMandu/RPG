@@ -6,6 +6,9 @@
 #include "Enemy.h"
 #include "MainPlayerController.h"
 #include "Explosive.h"
+#include "Store.h"
+#include "SaveGameCustom.h"
+#include "ItemSave.h"
 #include "Camera/CameraComponent.h"
 #include "GameFramework/SpringArmComponent.h"
 #include "GameFramework/CharacterMovementComponent.h"
@@ -19,8 +22,7 @@
 #include "Components/TimelineComponent.h"
 #include "Components/CapsuleComponent.h"
 #include "Components/BoxComponent.h"
-#include "SaveGameCustom.h"
-#include "ItemSave.h"
+
 
 
 // Sets default values
@@ -116,7 +118,7 @@ AMainCharacter::AMainCharacter()
 	Souls = 0;
 
 	ThrowAbility_Distance = 800.f;
-	ThrowAbility_Rotation = 1000.f;
+	ThrowAbility_Rotation = 1024.f;
 	SmashAbility_Damage = 200.f;
 	
 	/*******************************/
@@ -389,6 +391,17 @@ void AMainCharacter::ESCKeyDown()
 	{
 		PlayerController->TogglePauseMenu();
 	}
+	if (OverlappingActor)
+	{
+		AStore* Store = Cast<AStore>(OverlappingActor);
+		if (Store)
+		{
+			if (Store->bIsStorePageVisible)
+			{
+				Store->RemoveStorePage(this);
+			}
+		}
+	}
 }
 
 void AMainCharacter::ESCKeyUp()
@@ -408,12 +421,18 @@ void AMainCharacter::ShiftKeyUp()
 void AMainCharacter::EKeyDown()
 {
 	bEKeyDown = true;
-	if (OverlappingItem)
+	if (OverlappingActor)
 	{
-		AWeapon* Weapon = Cast<AWeapon>(OverlappingItem);
+		AWeapon* Weapon = Cast<AWeapon>(OverlappingActor);
+		AStore* Store = Cast<AStore>(OverlappingActor);
 		if(Weapon)
 		{ 
 			Weapon->Equip(this);
+		}
+
+		if (Store)
+		{
+			Store->DisplayStorePage(this);
 		}
 	}
 }
@@ -1004,7 +1023,7 @@ void AMainCharacter::Ability_ThrowWeapon()
 					AnimInstance->Montage_JumpToSection(FName("Execute"), AbilityThrowWeaponMontage);
 
 					EquippedWeapon->ThrowWeapon(this, AttachedSocketName, ThrowAbility_Distance, ThrowAbility_Rotation);
-					//UE_LOG(LogTemp, Warning, TEXT("AbilityRotation : %f"), ThrowAbility_Rotation);
+					UE_LOG(LogTemp, Warning, TEXT("Main : AbilityRotation : %f"), ThrowAbility_Rotation);
 					//EquippedWeapon->SetWeaponOwner(nullptr);
 					EquippedWeapon = nullptr;
 					//FVector WeaponThrow = FMath::VInterpTo(EquippedWeapon->GetActorLocation(), Destination, GetWorld()->GetDeltaSeconds(), 10.f);

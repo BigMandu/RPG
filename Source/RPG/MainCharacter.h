@@ -254,13 +254,13 @@ public:
 	//---     Player Weapon     ---//
 	/*******************************/
 	void SetEquippedWeapon(class AWeapon* WeaponToSet);
-	FORCEINLINE void SetActiveOverlappingItem(class AItem* ItemToSet) { OverlappingItem = ItemToSet; }
+	FORCEINLINE void SetActiveOverlappingActor(class AActor* OverlapActor) { OverlappingActor = OverlapActor; }
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Item")
 	AWeapon* EquippedWeapon;
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Item")
-	AItem* OverlappingItem;
+	AActor* OverlappingActor;
 
 	/*******************************/
 	//---     Player Combat     ---//

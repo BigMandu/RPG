@@ -57,7 +57,7 @@ void AWeapon::OnOverlapBegin(UPrimitiveComponent* OverlappedComponent, AActor* O
 		AMainCharacter* MainChar = Cast<AMainCharacter>(OtherActor);
 		if (MainChar)
 		{
-			MainChar->SetActiveOverlappingItem(this);
+			MainChar->SetActiveOverlappingActor(this);
 			
 			if (MainChar->EquippedWeapon != nullptr)
 			{
@@ -81,7 +81,7 @@ void AWeapon::OnOverlapEnd(UPrimitiveComponent* OverlappedComponent, AActor* Oth
 		AMainCharacter* MainChar = Cast<AMainCharacter>(OtherActor);
 		if (MainChar)
 		{
-			MainChar->SetActiveOverlappingItem(nullptr);
+			MainChar->SetActiveOverlappingActor(nullptr);
 		}
 	}
 }
@@ -123,7 +123,7 @@ void AWeapon::Equip(class ACharacter* Character)
 			//SetWeaponState(EWeaponState::EWS_Equipped);
 			RightWeaponSocket->AttachActor(this, MainChar->GetMesh());
 			MainChar->SetEquippedWeapon(this); //Main의 SetEquipped Weapon 호출.
-			MainChar->SetActiveOverlappingItem(nullptr);
+			MainChar->SetActiveOverlappingActor(nullptr);
 		}
 
 		
@@ -186,11 +186,11 @@ void AWeapon::ThrowWeapon(ACharacter* Character, FName SocketName, float Ability
 			FVector WeaponLocation = FMath::Lerp(CurWeaponLocation, Destination, AlphaTime); //AlphaTime때의 위치를 나타낸다.
 			SetActorLocation(WeaponLocation);  //구한 위치를 계속해서 업데이트 해준다.
 
-			FRotator WeaponRotation = GetActorRotation();
-			WeaponRotation.Roll += GetWorld()->GetDeltaSeconds() * AbilityRotation; //AbilityRotation 속도로 회전하게 한다.
-			FRotator WeaponRolling = FRotator(90.f, 0.f, WeaponRotation.Roll);  //vertical로 수평하게 하고 회전하게 한다.
+			FRotator WeaponRolling = FRotator(90.f, 0.f, Time * AbilityRotation);  //vertical로 수평하게 하고 회전하게 한다.
+			UE_LOG(LogTemp, Warning, TEXT("AbilityRotation : %f"), AbilityRotation);
 			SetActorRotation(WeaponRolling);
-			if (AbilityThrowSound && WeaponRotation.Roll >= 45.f)
+
+			if (AbilityThrowSound && GetActorRotation().Roll >= 0.f)
 			{	
 				UGameplayStatics::PlaySound2D(this, AbilityThrowSound);	
 			}
@@ -238,12 +238,10 @@ void AWeapon::ReceiveWeapon(ACharacter* Character, FVector BoxExtent)
 			FVector TargetLocation = FMath::Lerp(WeaponLocation, MainOverLocation, AlphaTime);
 			SetActorLocation(TargetLocation);
 
-			FRotator WeaponRotation = GetActorRotation();
-			WeaponRotation.Roll += GetWorld()->GetDeltaSeconds() * 1500.f; 
-			FRotator WeaponRolling = FRotator(90.f, 0.f, WeaponRotation.Roll);
+			FRotator WeaponRolling = FRotator(90.f, 0.f, Time*2048.f);
 			SetActorRotation(WeaponRolling);
 
-			if (AbilityThrowSound && WeaponRotation.Roll >= 45.f)
+			if (AbilityThrowSound && GetActorRotation().Roll >= 0.f)
 			{
 				UGameplayStatics::PlaySound2D(this, AbilityThrowSound);
 			}
