@@ -88,31 +88,46 @@ public:
 	// Player Stats   //
 	/*****************************/
 
-	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Player Stats");
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Player Stats");
 	float MaxHealth;
-	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Player Stats");
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Player Stats");
 	float Health;
-	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Player Stats");
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Player Stats");
 	float MaxStamina;
-	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Player Stats");
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Player Stats");
 	float Stamina;
 
-	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Player Stats");
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Player Stats");
 	float PlayerDamage;
 
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Player Stats");
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Player Stats");
 	int32 Coins;
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Player Stats");
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Player Stats");
 	int32 Souls;
 
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Player Stats");
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Player Stats");
 	float ThrowAbility_Distance;
 
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Player Stats");
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Player Stats");
 	float ThrowAbility_Rotation;
 
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Player Stats");
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Player Stats");
 	float SmashAbility_Damage;
+
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Store");
+	int32 HealthPurButtonCount;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Store");
+	int32 StaminaPurButtonCount;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Store");
+	int32 DamagePurButtonCount;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Store");
+	int32 RMBDistancePurButtonCount;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Store");
+	int32 RMBRotationPurButtonCount;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Store");
+	int32 FDamagePurButtonCount;
+
 
 	/*******************************/
 	//-- Player Movement   ---//
@@ -231,7 +246,29 @@ public:
 	void FKeyUp();
 
 	/*******************************/
-	//-- Player Movement 함수 ---//
+	//-- Setting Player Stats 함수 ---//
+	/*******************************/
+
+	UFUNCTION(BlueprintCallable)
+	void SetMaxHealthPoint(float MaxHP);
+
+	UFUNCTION(BlueprintCallable)
+	void SetMaxStamina(float MaxStat);
+
+	UFUNCTION(BlueprintCallable)
+	void SetPlayerDamage(float CharDamage);
+
+	UFUNCTION(BlueprintCallable)
+	void SetRMBDistance(float RMBDistance);
+
+	UFUNCTION(BlueprintCallable)
+	void SetRMBRotation(float RMBRotation);
+
+	UFUNCTION(BlueprintCallable)
+	void SetFDamage(float FDamage);
+
+	/*******************************/
+	//-- Player Movement 함수 ---// 
 	/*******************************/
 	void MoveForward(float Value);
 	void MoveRight(float Value);
@@ -244,11 +281,14 @@ public:
 
 	////Coin, Soul function////
 	void IncrementCoin(int32 Amount);
-	//void DecrementCoin(int32 Amount);
-	void IncrementSoul(int32 Amount);
-	//void DecrementSoul(int32 Amount);
 
-	void IncrementHealth(float Amount);
+	UFUNCTION(BlueprintCallable)
+	void DecrementCoin(int32 Amount);
+	
+	void IncrementSoul(int32 Amount);
+
+	UFUNCTION(BlueprintCallable)
+	void DecrementSoul(int32 Amount);
 
 	/*******************************/
 	//---     Player Weapon     ---//
@@ -278,6 +318,8 @@ public:
 	UFUNCTION(BlueprintCallable)
 	FORCEINLINE AEnemy* GetEnemyFindPlayer() { return HasSpotted; }*/
 	
+	void IncrementHealth(float Amount);
+
 	void DecrementHealth(float Amount);
 	void Die();
 

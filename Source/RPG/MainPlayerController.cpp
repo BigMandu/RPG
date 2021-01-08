@@ -2,6 +2,7 @@
 
 
 #include "Enemy.h"
+#include "MainCharacter.h"
 #include "MainPlayerController.h"
 #include "Blueprint/UserWidget.h"
 #include "Kismet/GameplayStatics.h"
@@ -31,6 +32,17 @@ void AMainPlayerController::BeginPlay()
 			bPauseMenuVisible = false;
 		}
 	}
+
+	if (WStorePage)
+	{
+		StorePage = CreateWidget<UUserWidget>(this, WStorePage);
+		if (StorePage)
+		{
+			StorePage->AddToViewport();
+			StorePage->SetVisibility(ESlateVisibility::Hidden);
+			bIsStorePageVisible = false;
+		}
+	}
 }
 
 void AMainPlayerController::Tick(float DeltaTime)
@@ -44,8 +56,6 @@ void AMainPlayerController::DisplayPauseMenu_Implementation()
 	{
 		bPauseMenuVisible = true;
 		
-		
-
 		UGameplayStatics::SetGamePaused(this, true); //얘를 먼저하니까 아래꺼가 싹다 무시됨.
 
 		PauseMenu->SetVisibility(ESlateVisibility::Visible);
@@ -78,3 +88,59 @@ void AMainPlayerController::TogglePauseMenu()
 		DisplayPauseMenu();
 	}
 }
+
+
+
+void AMainPlayerController::DisplayStorePage_Implementation()
+{
+	if (StorePage)
+	{
+		AMainCharacter* Main = Cast<AMainCharacter>(GetPawn());
+		if (Main)
+		{
+			Main->SaveGame(false);
+			UE_LOG(LogTemp, Warning, TEXT("DisplayStorepage && Save game"));
+		}
+		
+		bIsStorePageVisible = true;
+
+		StorePage->SetVisibility(ESlateVisibility::Visible);
+
+		//FInputModeGameAndUI Inputmode;
+		FInputModeUIOnly Inputmode;
+		SetInputMode(Inputmode);
+		bShowMouseCursor = true;
+
+		UGameplayStatics::SetGamePaused(this, true);
+	}
+
+}
+
+void AMainPlayerController::RemoveStorePage_Implementation()
+{
+	if (StorePage)
+	{
+		
+		AMainCharacter* Main = Cast<AMainCharacter>(GetPawn());
+		if (Main)
+		{
+			Main->SaveGame(false); //상점 이용후 저장 및 로드를 해준다. (캐릭터 스텟이 있기때문)
+			Main->LoadGame(false);
+			UE_LOG(LogTemp, Warning, TEXT("RemoveStorepage && Save, Load game"));
+		}
+		
+		
+		bIsStorePageVisible = false;
+		
+		FInputModeGameOnly Inputmode;
+		SetInputMode(Inputmode);
+		
+
+		bShowMouseCursor = false;
+
+		StorePage->SetVisibility(ESlateVisibility::Hidden);
+
+		UGameplayStatics::SetGamePaused(this, false);
+	}
+}
+

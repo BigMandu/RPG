@@ -390,17 +390,11 @@ void AMainCharacter::ESCKeyDown()
 	if (PlayerController)
 	{
 		PlayerController->TogglePauseMenu();
-	}
-	if (OverlappingActor)
-	{
-		AStore* Store = Cast<AStore>(OverlappingActor);
-		if (Store)
+
+		if (PlayerController->bIsStorePageVisible == true)
 		{
-			if (Store->bIsStorePageVisible)
-			{
-				Store->RemoveStorePage(this);
-			}
-		}
+			PlayerController->RemoveStorePage();
+		}		
 	}
 }
 
@@ -429,10 +423,10 @@ void AMainCharacter::EKeyDown()
 		{ 
 			Weapon->Equip(this);
 		}
-
-		if (Store)
+		else if (Store)
 		{
-			Store->DisplayStorePage(this);
+			UE_LOG(LogTemp, Warning, TEXT("Store overlapping"));
+			PlayerController->DisplayStorePage();
 		}
 	}
 }
@@ -604,14 +598,60 @@ void AMainCharacter::IncrementSoul(int32 Amount)
 	Souls += Amount;
 }
 
+void AMainCharacter::DecrementCoin(int32 Amount)
+{
+	Coins -= Amount;
+}
+
+void AMainCharacter::DecrementSoul(int32 Amount)
+{
+	Souls -= Amount;
+}
+
+void AMainCharacter::SetMaxHealthPoint(float MaxHP)
+{
+	MaxHealth = MaxHP;
+}
+
+void AMainCharacter::SetMaxStamina(float MaxStat)
+{
+	MaxStamina = MaxStat;
+}
+
+void AMainCharacter::SetPlayerDamage(float CharDamage)
+{
+	PlayerDamage = CharDamage;
+}
+
+void AMainCharacter::SetRMBDistance(float RMBDistance)
+{
+	ThrowAbility_Distance = RMBDistance;
+}
+
+void AMainCharacter::SetRMBRotation(float RMBRotation)
+{
+	ThrowAbility_Rotation = RMBRotation;
+}
+
+void AMainCharacter::SetFDamage(float FDamage)
+{
+	SmashAbility_Damage = FDamage;
+}
+
+
 void AMainCharacter::IncrementHealth(float Amount)
 {
 	if (Health + Amount >= MaxHealth)
 	{
 		Health = MaxHealth;
 	}
-	Health += Amount;
+	else
+	{
+		Health += Amount;
+	}
+	
 }
+
 
 /*************** Damage ****************/
 //////////   Damage 관련 함수   /////////
@@ -1140,9 +1180,15 @@ void AMainCharacter::SaveGame(bool bSwitchLevel)
 		SaveGameInstance->SaveCharacterStats.PlayerDamage = PlayerDamage;
 		SaveGameInstance->SaveCharacterStats.ThrowAbility_Distance = ThrowAbility_Distance;
 		SaveGameInstance->SaveCharacterStats.ThrowAbility_Rotation = ThrowAbility_Rotation;
-
 		SaveGameInstance->SaveCharacterStats.SmashAbility_Damage = SmashAbility_Damage;
 
+
+		SaveGameInstance->SaveCharacterStats.HealthPurButtonCount = HealthPurButtonCount;
+		SaveGameInstance->SaveCharacterStats.StaminaPurButtonCount = StaminaPurButtonCount;
+		SaveGameInstance->SaveCharacterStats.DamagePurButtonCount = DamagePurButtonCount;
+		SaveGameInstance->SaveCharacterStats.RMBDistancePurButtonCount = RMBDistancePurButtonCount;
+		SaveGameInstance->SaveCharacterStats.RMBRotationPurButtonCount = RMBRotationPurButtonCount;
+		SaveGameInstance->SaveCharacterStats.FDamagePurButtonCount = FDamagePurButtonCount;
 
 		//if (bSwitchLevel == false) //Level 전환이 아닐때만 map이름을 저장한다.
 		{
@@ -1196,6 +1242,15 @@ void AMainCharacter::LoadGame(bool bSwitchLevel)
 		ThrowAbility_Distance = LoadGameInstance->SaveCharacterStats.ThrowAbility_Distance;
 		ThrowAbility_Rotation = LoadGameInstance->SaveCharacterStats.ThrowAbility_Rotation;
 		SmashAbility_Damage = LoadGameInstance->SaveCharacterStats.SmashAbility_Damage;
+
+
+		HealthPurButtonCount = LoadGameInstance->SaveCharacterStats.HealthPurButtonCount;
+		StaminaPurButtonCount = LoadGameInstance->SaveCharacterStats.StaminaPurButtonCount;
+		DamagePurButtonCount = LoadGameInstance->SaveCharacterStats.DamagePurButtonCount;
+		RMBDistancePurButtonCount = LoadGameInstance->SaveCharacterStats.RMBDistancePurButtonCount;
+		RMBRotationPurButtonCount = LoadGameInstance->SaveCharacterStats.RMBRotationPurButtonCount;
+		FDamagePurButtonCount = LoadGameInstance->SaveCharacterStats.FDamagePurButtonCount;
+
 
 		if (WeaponSave)//AItemSave를 지정해줬으면 (안에 Tmap있음)
 		{

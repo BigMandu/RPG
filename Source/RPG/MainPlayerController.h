@@ -29,6 +29,14 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Widgets)
 	UUserWidget* PauseMenu;
 
+
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Widgets)
+	TSubclassOf<UUserWidget> WStorePage;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Widgets)
+	UUserWidget* StorePage;
+
 	virtual void Tick(float DeltaTime) override;
 protected:
 	//Begin play시 HUD를 띄워야함.
@@ -45,4 +53,11 @@ public:
 
 	void TogglePauseMenu();
 	
+
+	bool bIsStorePageVisible;
+	UFUNCTION(BlueprintNativeEvent, BlueprintCallable, Category = "Store")
+	void DisplayStorePage();
+
+	UFUNCTION(BlueprintNativeEvent, BlueprintCallable, Category = "Store")
+	void RemoveStorePage();
 };

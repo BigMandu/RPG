@@ -22,16 +22,6 @@ public:
 	class UStaticMeshComponent* StoreMesh;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Store)
-	TSubclassOf<UUserWidget> WStorePage;
-
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Store)
-	UUserWidget* StorePage;
-
-
-	class AMainCharacter* Main;
-	class AMainPlayerController* PlayerCon;
-
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Store)
 	class UParticleSystemComponent* OverlapParticle;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Store)
@@ -51,13 +41,4 @@ public:
 	virtual void OnOverlapBegin(UPrimitiveComponent* OverlappedComponent, AActor* OtherActor, UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult);
 	UFUNCTION()
 	virtual void OnOverlapEnd(UPrimitiveComponent* OverlappedComponent, AActor* OtherActor, UPrimitiveComponent* OtherComp, int32 OtherBodyIndex);
-
-	bool bIsOverlap;
-	bool bIsStorePageVisible;
-
-	UFUNCTION(BlueprintNativeEvent, BlueprintCallable, Category = Store)
-	void DisplayStorePage(class ACharacter* OverlapCharacter);
-
-	UFUNCTION(BlueprintNativeEvent, BlueprintCallable, Category = Store)
-	void RemoveStorePage(ACharacter* OverlapCharacter);
 };

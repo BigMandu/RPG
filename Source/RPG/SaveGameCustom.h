@@ -53,6 +53,21 @@ struct FCharacterStats
 
 	UPROPERTY(VisibleAnywhere, Category = "SaveGameData");
 	bool bFirstLoadGame;
+
+
+
+	UPROPERTY(VisibleAnywhere, Category = "SaveGameData");
+	int32 HealthPurButtonCount;
+	UPROPERTY(VisibleAnywhere, Category = "SaveGameData");
+	int32 StaminaPurButtonCount;
+	UPROPERTY(VisibleAnywhere, Category = "SaveGameData");
+	int32 DamagePurButtonCount;
+	UPROPERTY(VisibleAnywhere, Category = "SaveGameData");
+	int32 RMBDistancePurButtonCount;
+	UPROPERTY(VisibleAnywhere, Category = "SaveGameData");
+	int32 RMBRotationPurButtonCount;
+	UPROPERTY(VisibleAnywhere, Category = "SaveGameData");
+	int32 FDamagePurButtonCount;
 };
 
 UCLASS()
