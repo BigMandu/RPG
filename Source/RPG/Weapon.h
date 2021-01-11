@@ -6,6 +6,7 @@
 #include "Item.h"
 #include "Weapon.generated.h"
 
+
 //무기 상태
 UENUM(BlueprintType)
 enum class EWeaponState : uint8
@@ -48,6 +49,7 @@ public:
 	//Particle
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Item | Particle")
 	bool bIdleParticle;
+
 
 protected:
 	// Called when the game starts or when spawned
@@ -97,10 +99,14 @@ public:
 	UPROPERTY(EditDefaultsOnly, Category = "SaveGameData")
 	FString WeaponName;
 
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Item | Stats")
+	class UWeaponPrimaryDataAsset* WeaponData;
+
 	/*******************************/
 	//---      Weapon State     ---//
 	/*******************************/
 	//equip function
+	UFUNCTION(BlueprintCallable)
 	void Equip(class ACharacter* Character);
 	void Equip(class ACharacter* Character, const USkeletalMeshSocket* Socket);
 

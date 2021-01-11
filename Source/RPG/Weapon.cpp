@@ -4,6 +4,7 @@
 #include "Weapon.h"
 #include "MainCharacter.h"
 #include "Enemy.h"
+#include "Engine/DataAsset.h"
 #include "Engine/SkeletalMeshSocket.h"
 #include "Components/SkeletalMeshComponent.h"
 #include "Components/BoxComponent.h"
@@ -11,6 +12,7 @@
 #include "Kismet/GameplayStatics.h"
 #include "Sound/SoundCue.h"
 #include "Particles/ParticleSystemComponent.h"
+#include "WeaponPrimaryDataAsset.h"
 
 
 
@@ -24,6 +26,8 @@ AWeapon::AWeapon()
 
 	WeaponState = EWeaponState::EWS_Spawn;
 	WeaponDamage = 15.f;
+
+	
 }
 
 void AWeapon::BeginPlay()
