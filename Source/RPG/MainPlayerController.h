@@ -30,12 +30,19 @@ public:
 	UUserWidget* PauseMenu;
 
 
-
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Widgets)
 	TSubclassOf<UUserWidget> WStorePage;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Widgets)
 	UUserWidget* StorePage;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Widgets)
+	TSubclassOf<UUserWidget> WGameEnd;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Widgets)
+	UUserWidget* GameEnd;
+
+
 
 	virtual void Tick(float DeltaTime) override;
 protected:
@@ -60,4 +67,14 @@ public:
 
 	UFUNCTION(BlueprintNativeEvent, BlueprintCallable, Category = "Store")
 	void RemoveStorePage();
+
+
+	bool bGameEndWidgetVisible;
+	UFUNCTION(BlueprintNativeEvent, BlueprintCallable, Category = "Store")
+	void DisplayGameEndWidget();
+
+	UFUNCTION(BlueprintNativeEvent, BlueprintCallable, Category = "Store")
+	void RemoveGameEndWidget();
+
+
 };

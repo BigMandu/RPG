@@ -191,7 +191,7 @@ void AWeapon::ThrowWeapon(ACharacter* Character, FName SocketName, float Ability
 			SetActorLocation(WeaponLocation);  //구한 위치를 계속해서 업데이트 해준다.
 
 			FRotator WeaponRolling = FRotator(90.f, 0.f, Time * AbilityRotation);  //vertical로 수평하게 하고 회전하게 한다.
-			UE_LOG(LogTemp, Warning, TEXT("AbilityRotation : %f"), AbilityRotation);
+			//UE_LOG(LogTemp, Warning, TEXT("AbilityRotation : %f"), AbilityRotation);
 			SetActorRotation(WeaponRolling);
 
 			if (AbilityThrowSound && GetActorRotation().Roll >= 0.f)

@@ -23,7 +23,12 @@ public:
 	FName TransitionLevelName;
 
 	class UBillboardComponent* Billboard;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Level Transition")
+	bool bIsGameEndVolume;
 	
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Level Transition")
+	bool bIsGameOverVolume;
 
 protected:
 	// Called when the game starts or when spawned

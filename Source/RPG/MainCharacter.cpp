@@ -22,6 +22,7 @@
 #include "Components/TimelineComponent.h"
 #include "Components/CapsuleComponent.h"
 #include "Components/BoxComponent.h"
+#include "Components/AudioComponent.h"
 
 
 
@@ -149,6 +150,28 @@ void AMainCharacter::BeginPlay()
 	FString CurMapName = GetWorld()->GetMapName();
 	CurMapName.RemoveFromStart(GetWorld()->StreamingLevelsPrefix);
 	UE_LOG(LogTemp, Warning, TEXT("%s"), *CurMapName);
+
+	if (CurMapName == TEXT("FrozenCove"))
+	{
+		if (LevelFrozenCaveSound)
+		{
+			LevelAudioComponent = UGameplayStatics::CreateSound2D(this, LevelFrozenCaveSound);
+			LevelAudioComponent->Play();
+				
+		}
+	}
+
+	if (CurMapName == TEXT("Demonstration"))
+	{
+		if (LevelDungeonSound)
+		{
+			LevelAudioComponent = UGameplayStatics::CreateSound2D(this, LevelDungeonSound);
+			LevelAudioComponent->Play();
+		}
+	}
+
+
+
 	if (CurMapName != TEXT("Firstmap"))
 	{
 		if (CurMapName == TEXT("Titlemap")) return;
@@ -184,6 +207,11 @@ void AMainCharacter::BeginPlay()
 void AMainCharacter::Tick(float DeltaTime)
 {
 	Super::Tick(DeltaTime);
+
+	//죽은 상태면 그냥 리턴.
+	if (MovementStatus == EMovementStatus::EMS_Dead)
+		return;
+
 	float DeltaStaminaDrain = StaminaDrainRate * DeltaTime;
 	float DeltaStaminaRecovery = StaminaRecoveryRate * DeltaTime;
 	
@@ -475,7 +503,7 @@ void AMainCharacter::RMBUp()
 
 void AMainCharacter::Jump()
 {
-	if (!bAttacking)
+	if (!bAttacking && MovementStatus != EMovementStatus::EMS_Dead)
 	{
 		Super::Jump();
 		ACharacter::Jump();
@@ -519,7 +547,7 @@ void AMainCharacter::CapsuleOnHit(UPrimitiveComponent* HitComponent, AActor* Oth
 void AMainCharacter::MoveForward(float Value)
 {
 	bMoveForward = false;
-	if ((PlayerController != nullptr) && (Value != 0.f) && (!bAttacking))
+	if ((PlayerController != nullptr) && (Value != 0.f) && (!bAttacking) && MovementStatus != EMovementStatus::EMS_Dead)
 	{
 		bMoveForward = true;
 		//Cameraboom도 ControlRotation을 이용. ControlRotation을 이용해서 회전방향으로 진행.
@@ -536,7 +564,7 @@ void AMainCharacter::MoveForward(float Value)
 void AMainCharacter::MoveRight(float Value)
 {
 	bMoveRight = false;
-	if ((PlayerController != nullptr) && (Value != 0.f) && (!bAttacking))
+	if ((PlayerController != nullptr) && (Value != 0.f) && (!bAttacking) && MovementStatus != EMovementStatus::EMS_Dead)
 	{
 		bMoveRight = true;
 		const FRotator Rotation = PlayerController->GetControlRotation();
@@ -724,7 +752,7 @@ void AMainCharacter::AttackRangeDamage() //Player의 범위 공격 (스킬 같은것.)
 	}
 
 	//디버깅용
-	{
+	/*{
 		if (bAbilitySmash)
 		{
 			DrawDebugSphere(GetWorld(), GetActorLocation(), 400.f, int32(12), FColor::Red, false, 2.f, (uint8)nullptr, 1.0f);
@@ -735,7 +763,7 @@ void AMainCharacter::AttackRangeDamage() //Player의 범위 공격 (스킬 같은것.)
 				ZSize * 0.5 + XSize + YSize, XSize + YSize, FRotationMatrix::MakeFromZ(GetActorForwardVector() * ZSize).ToQuat(),
 				FColor::Red, false, 2.0f);
 		}
-	}
+	}*/
 	
 
 	if (OutHit.Num() == 0) return;
@@ -756,7 +784,7 @@ void AMainCharacter::AttackRangeDamage() //Player의 범위 공격 (스킬 같은것.)
 					ECollisionChannel::ECC_WorldStatic); //마지막 인자값은, 타격 원점과 액터사이에 해당 채널을 막는 액터가 있다면 damamge를 받지 않는다는것임.
 
 				//디버깅용
-				DrawDebugSphere(GetWorld(), GetActorLocation(), 400.f, int32(12), FColor::Green, false, 2.f, (uint8)nullptr, 1.0f);
+				//DrawDebugSphere(GetWorld(), GetActorLocation(), 400.f, int32(12), FColor::Green, false, 2.f, (uint8)nullptr, 1.0f);
 			}
 			if (Explosive)
 			{
@@ -771,9 +799,9 @@ void AMainCharacter::AttackRangeDamage() //Player의 범위 공격 (스킬 같은것.)
 				UGameplayStatics::ApplyDamage(Enemy, Damage + EquippedWeapon->WeaponDamage, PlayerController, this, DamageTypeClass);
 				//디버깅용
 				{
-					DrawDebugCapsule(GetWorld(), EndLocation,
+					/*DrawDebugCapsule(GetWorld(), EndLocation,
 						ZSize * 0.5 + XSize + YSize, XSize + YSize, FRotationMatrix::MakeFromZ(GetActorForwardVector() * ZSize).ToQuat(),
-						FColor::Green, false, 2.0f);
+						FColor::Green, false, 2.0f);*/
 					//UE_LOG(LogTemp, Warning, TEXT("Player Range Attack success, Damage is : %f, Weapon Damage is : %f, TotalDamage is : %f"), Damage, EquippedWeapon->WeaponDamage, Damage + EquippedWeapon->WeaponDamage);
 				}
 			}
@@ -838,8 +866,27 @@ void AMainCharacter::DecrementHealth(float Amount)
 }
 void AMainCharacter::Die()
 {
-	Health = 0;
 	//UE_LOG(LogTemp, Warning, TEXT("AMainCharacter::Die()"));
+	if (MovementStatus == EMovementStatus::EMS_Dead) return;
+
+	SetMovementStatus(EMovementStatus::EMS_Dead);
+	Health = 0.f;
+	Stamina = 0.f;
+
+	UAnimInstance* AnimIns = GetMesh()->GetAnimInstance();
+	if (AnimIns && DeathMontage)
+	{
+		AnimIns->Montage_Play(DeathMontage, 1.f);
+		AnimIns->Montage_JumpToSection(TEXT("Execute"), DeathMontage);
+	}
+}
+
+void AMainCharacter::DeathEnd()
+{
+	GetMesh()->bPauseAnims = true;
+	GetMesh()->bNoSkeletonUpdate = true;
+	GetWorldTimerManager().ClearAllTimersForObject(this);
+	PlayerController->DisplayPauseMenu();
 }
 
 /************ Weapon **************/
@@ -1229,8 +1276,27 @@ void AMainCharacter::LoadGame(bool bSwitchLevel)
 
 	USaveGameCustom* LoadGameInstance = Cast<USaveGameCustom>(UGameplayStatics::LoadGameFromSlot(SaveGame->SlotName, SaveGame->UserIndex));
 
+	UAnimInstance* AnimInst = GetMesh()->GetAnimInstance();
+
 	if (LoadGameInstance)
-	{	
+	{
+		if (AnimInst)//죽고 난 뒤 Load했을때 Movement Status와 Anim update를 다시 풀어준다.
+		{
+			if (AnimInst->IsAnyMontagePlaying())
+			{
+				UAnimMontage* playingMontage = AnimInst->GetCurrentActiveMontage();
+				if (playingMontage == DeathMontage)
+				{
+					UE_LOG(LogTemp, Warning, TEXT("Anim name is : %s"), *playingMontage->GetFName().ToString());
+					AnimInst->Montage_Stop(0.f, playingMontage);
+				}
+			}
+		
+			SetMovementStatus(EMovementStatus::EMS_Normal);
+			GetMesh()->bPauseAnims = false;
+			GetMesh()->bNoSkeletonUpdate = false;
+		}
+		FallingMaxHeight = 0.f; //높이 떨어지고 있을때 로드할 경우 떨어지는 최대 높이를 초기화 시켜준다.
 
 		Health = LoadGameInstance->SaveCharacterStats.Health;
 		MaxHealth = LoadGameInstance->SaveCharacterStats.MaxHealth;
@@ -1250,6 +1316,9 @@ void AMainCharacter::LoadGame(bool bSwitchLevel)
 		RMBDistancePurButtonCount = LoadGameInstance->SaveCharacterStats.RMBDistancePurButtonCount;
 		RMBRotationPurButtonCount = LoadGameInstance->SaveCharacterStats.RMBRotationPurButtonCount;
 		FDamagePurButtonCount = LoadGameInstance->SaveCharacterStats.FDamagePurButtonCount;
+
+		
+		
 
 
 		if (WeaponSave)//AItemSave를 지정해줬으면 (안에 Tmap있음)

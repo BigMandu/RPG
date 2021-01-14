@@ -337,10 +337,10 @@ void AEnemy::AttackRangeDamage() //범위공격
 		FCollisionShape::MakeSphere(AttackRadius), QueryParam);
 
 	/*디버깅용*/
-	FColor Color = bHit ? FColor::Green : FColor::Red;
+	/*FColor Color = bHit ? FColor::Green : FColor::Red;
 	DrawDebugCapsule(GetWorld(), GetActorLocation() + GetActorForwardVector() * AttackRange * 0.5,
 		AttackRange * 0.5 + AttackRadius, AttackRadius, FRotationMatrix::MakeFromZ(GetActorForwardVector() * AttackRange).ToQuat(),
-		Color, false, 2.0f);
+		Color, false, 2.0f);*/
 
 	if (bHit)
 	{
@@ -355,12 +355,12 @@ void AEnemy::AttackRangeDamage() //범위공격
 				{
 					UGameplayStatics::ApplyDamage(Main, Damage + (Damage*0.5), AIController, this, DamageTypeClass);
 					bStrongAttack = false;
-					UE_LOG(LogTemp, Warning, TEXT("Strong Attack . Damage is : %f"), Damage + (Damage * 0.5));
+					//UE_LOG(LogTemp, Warning, TEXT("Strong Attack . Damage is : %f"), Damage + (Damage * 0.5));
 				}
 				else
 				{
 					UGameplayStatics::ApplyDamage(Main, Damage, AIController, this, DamageTypeClass);
-					UE_LOG(LogTemp, Warning, TEXT("Damage is : %f"), Damage);
+					//UE_LOG(LogTemp, Warning, TEXT("Damage is : %f"), Damage);
 				}
 				
 				//UE_LOG(LogTemp, Warning, TEXT("Enemy::ApplyDamage"));
@@ -377,17 +377,17 @@ void AEnemy::AttackGiveDamage(ACharacter* Victim) //무기를 이용한 공격
 	AMainCharacter* Main = Cast<AMainCharacter>(Victim);
 	if (Main)
 	{
-		UE_LOG(LogTemp, Warning, TEXT("Enemy::ApplyDamage"));
+		//UE_LOG(LogTemp, Warning, TEXT("Enemy::ApplyDamage"));
 		if (bStrongAttack == true)
 		{
 			UGameplayStatics::ApplyDamage(Main, Damage + (Damage*0.5), AIController, this, DamageTypeClass);
 			bStrongAttack = false;
-			UE_LOG(LogTemp, Warning, TEXT("Strong Attack . Damage is : %f"), Damage + (Damage * 0.5));
+			//UE_LOG(LogTemp, Warning, TEXT("Strong Attack . Damage is : %f"), Damage + (Damage * 0.5));
 		}
 		else
 		{
 			UGameplayStatics::ApplyDamage(Main, Damage, AIController, this, DamageTypeClass);
-			UE_LOG(LogTemp, Warning, TEXT("Damage is : %f"), Damage);
+			//UE_LOG(LogTemp, Warning, TEXT("Damage is : %f"), Damage);
 		}
 		
 	}
@@ -454,6 +454,7 @@ void AEnemy::DeathEnd() //Die함수에서 재생하는 Animation의 Notify에서 호출.
 
 void AEnemy::DeathClear() //바로위 DeathEnd함수에서 타이머가 되면 호출됨.
 {
+	GetWorldTimerManager().ClearAllTimersForObject(this);
 	SpawnLoot();
 	if (LeftWeapon)
 	{
@@ -506,18 +507,29 @@ void AEnemy::SpawnLoot()
 
 
 void AEnemy::Attack(UBlackboardComponent* BBComp)
-{	
-	if (!bAttacking)
+{
+	if (!bAttacking)// && EnemyMovementStatus != EEnemyMovementStatus::EMS_Dead)
 	{
 		bAttacking = true;
 		if (AnimInstance && AIController)
 		{
 			SetEnemyMovementStatus(EEnemyMovementStatus::EMS_Attack);
 
+			MainPlayer = Cast<AMainCharacter>(BBComp->GetValueAsObject(AIController->TargetKey));
+
+			checkf(MainPlayer, TEXT("Enemy::Attack() MainChar is NULL"));
+			checkf(BBComp, TEXT("Enemy::Attack() BBComp is NULL"));
+
+			if (MainPlayer->MovementStatus == EMovementStatus::EMS_Dead)
+			{
+				//공격때 Target(player)이 죽으면 TargetLost를 호출해서 Target을 nullptr로 변경해준다.
+				AIController->TargetLost(MainPlayer);
+			}
+
 			//AIController에서 세팅하는 값.
 			bool CloseCombat = BBComp->GetValueAsBool(AIController->CanAttackKey); //근접공격을 재생해야하는지
 			bool DashAttack = BBComp->GetValueAsBool(AIController->CanDashAttackKey); //대쉬공격을 해야하는지 판단 하기 위해 bb에서 값을 가져옴.
-			
+
 
 			if (CloseCombat && !DashAttack) //근접공격이 true면
 			{
@@ -544,49 +556,54 @@ void AEnemy::Attack(UBlackboardComponent* BBComp)
 			}
 			if (!CloseCombat && DashAttack) //Dash공격이 true면
 			{
-				AMainCharacter* MainChar = Cast<AMainCharacter>(BBComp->GetValueAsObject(AIController->TargetKey));
-
-				checkf(MainChar, TEXT("Enemy::Attack() MainChar is NULL"));
-				checkf(BBComp, TEXT("Enemy::Attack() BBComp is NULL"));
-
 				FVector CurrentVector = GetActorLocation();
 				FVector DashVector(GetActorForwardVector() * 1200.f);
 				DashVector.Z = CurrentVector.Z; //오르막길, 내리막길에선 어떻게 하지??
 
 				GetCharacterMovement()->MaxWalkSpeed = 950.f;
-				
-				check(DashAttackCombatMontage);
 
-				AnimInstance->Montage_Play(DashAttackCombatMontage, 1.2f);
+				if (AnimInstance && DashAttackCombatMontage)// && GetWorldTimerManager().TimerExists(DashAttackHandle))
+				{
+					AnimInstance->Montage_Play(DashAttackCombatMontage, 1.2f);
 
-				GetWorld()->GetTimerManager().SetTimer(DashAttackHandle, [=]
+					if (AnimInstance->Montage_IsPlaying(DashAttackCombatMontage))
 					{
-						if (FName("Dash") == AnimInstance->Montage_GetCurrentSection(DashAttackCombatMontage))
-						{
-							RotateToTarget(); //대쉬중 회전도 가능하게 한번 넣어봤다.
+						GetWorld()->GetTimerManager().SetTimer(DashAttackHandle, [this]
+							{
+								if (EnemyMovementStatus == EEnemyMovementStatus::EMS_Dead)
+								{
+									GetWorldTimerManager().ClearTimer(DashAttackHandle);
+									return;
+								}
 
-							FAIMoveRequest MoveReq;
-							MoveReq.SetGoalActor(MainChar);
-							//MoveReq.SetGoalLocation(DashVector + CurrentVector);
-							MoveReq.SetAcceptanceRadius(1.f);
-							AIController->MoveTo(MoveReq);
-						}
-					}, 1.0f, true);
+								/*https://www.notion.so/bigdumpling/b25aa96658004f3dbfdeed7624452ecc */
+								FName PlayingSection = AnimInstance->Montage_GetCurrentSection(DashAttackCombatMontage); 
+								UE_LOG(LogTemp, Warning, TEXT("Dash anim cursection is : %s"), *PlayingSection.ToString());
+								if (PlayingSection != TEXT("Dash"))
+								{
+									return;
+								}
+								else
+								{
+									FAIMoveRequest MoveReq;
+									MoveReq.SetGoalActor(MainPlayer);
+									MoveReq.SetAcceptanceRadius(1.f);
+									AIController->MoveTo(MoveReq);
+								}
+							}, GetWorld()->GetDeltaSeconds(), true);
+					}
+				}
 			}
-			
 		}
 	}
 }
 
 void AEnemy::AttackEnd()
 {
-	//UE_LOG(LogTemp, Warning, TEXT("Delegate:: Enemy:: Attack End Function call"));
+	UE_LOG(LogTemp, Warning, TEXT("Delegate:: Enemy:: Attack End Function call"));
 	bAttacking = false;
 	bWasHit = false; //ReturnHit()에서 사용함.
-	if (DashAttackHandle.IsValid())
-	{
-		GetWorldTimerManager().ClearTimer(DashAttackHandle);
-	}
+	GetWorldTimerManager().ClearTimer(DashAttackHandle);
 }
 
 

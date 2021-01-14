@@ -7,6 +7,7 @@
 #include "Kismet/KismetMathLibrary.h"
 #include "Enemy.h"
 #include "EnemyAIController.h"
+#include "NavigationSystem.h"
 
 
 // Sets default values
@@ -60,18 +61,25 @@ FVector AWorldSpawnVolume::GetSpawnPoint()
 
 TSubclassOf<AActor> AWorldSpawnVolume::GetSpawnActor()
 {
-	if (SpawnArray.Num() > 0)
+	int32 it = 0;
+	for (it = 0; it < SpawnArray.Num() - 1; it++) //Spawn Array에서 nullptr직전 element number를 가져온다.
 	{
-		for (int32 i = 0; i < SpawnCount; i++)
+		if (SpawnArray[it] == nullptr)
 		{
-			int32 Select = FMath::RandRange(0, SpawnArray.Num() - 1);
-			if (SpawnArray[Select] != nullptr)
-			{
-				return SpawnArray[Select];
-			}
+			--it;
+			break;
 		}
 	}
-	//UE_LOG(LogTemp, Warning, TEXT("Spawn Array is null"));
+
+	if (it >= 0)
+	{
+		int32 Select = FMath::RandRange(0, it);
+		if (SpawnArray[Select] != nullptr)
+		{
+			return SpawnArray[Select];
+		}
+	}
+	UE_LOG(LogTemp, Warning, TEXT("Spawn Array is null"));
 	return nullptr;
 }
 
@@ -83,7 +91,9 @@ void AWorldSpawnVolume::SpawnSelectedActor()
 	{
 		for (int32 i = 0; i < SpawnCount; i++)
 		{
-			AActor* Actor = World->SpawnActor<AActor>(GetSpawnActor(), GetSpawnPoint(), FRotator(0.f));
+			FVector SpawnLocation = GetSpawnPoint();
+
+			AActor* Actor = World->SpawnActor<AActor>(GetSpawnActor(), SpawnLocation, FRotator(0.f));
 
 			AEnemy* Enemy = Cast<AEnemy>(Actor);
 			if (Enemy) //Enemy일 경우 AIController를 넣어줌.
@@ -93,7 +103,7 @@ void AWorldSpawnVolume::SpawnSelectedActor()
 				if (AICon)
 				{
 					Enemy->AIControllerClass = AICon->StaticClass();
-					//Enemy->AIController = AICon;
+					
 				}
 			}
 		}

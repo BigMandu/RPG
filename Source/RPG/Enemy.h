@@ -57,6 +57,7 @@ public:
 
 	FORCEINLINE EEnemyWeaponType GetEnemyType() { return EnemyWeaponType; }
 
+	class AMainCharacter* MainPlayer;
 
 
 

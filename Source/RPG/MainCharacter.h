@@ -11,6 +11,7 @@ enum class EMovementStatus : uint8
 {
 	EMS_Normal UMETA(DisplayName = "Normal"),
 	EMS_Sprint UMETA(DisplayName = "Sprint"),
+	EMS_Dead	UMETA(DisplayName = "Dead"),
 
 	EMS_MAX UMETA(DisplayName = "DefaultMAX")
 };
@@ -57,6 +58,14 @@ public:
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = Camera)
 	float BaseLookUpRate;
 
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Level Sound")
+	class USoundCue* LevelFrozenCaveSound;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Level Sound")
+	USoundCue* LevelDungeonSound;
+
+	class UAudioComponent* LevelAudioComponent;
 
 	//Capsule Component 충돌 관련
 
@@ -181,6 +190,9 @@ public:
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Combat")
 	UAnimMontage* AbilitySmashMontage;
 
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Combat")
+	UAnimMontage* DeathMontage;
+
 	FTimerHandle SprintAttackTimer; //SprintAttack시 사용되는 타이머핸들
 	FTimerHandle AbilitySmashHandle; // Ability Smash때 사용되는 타이머 핸들
 
@@ -278,6 +290,9 @@ public:
 	void SetMovementStatus(EMovementStatus Status);
 	FORCEINLINE void SetStaminaStatus(EStaminaStatus Status) { StaminaStatus = Status; }
 
+	UFUNCTION(BlueprintCallable)
+	EMovementStatus GetMovementStatus() { return MovementStatus; }
+
 
 	////Coin, Soul function////
 	void IncrementCoin(int32 Amount);
@@ -322,6 +337,9 @@ public:
 
 	void DecrementHealth(float Amount);
 	void Die();
+
+	UFUNCTION(BlueprintCallable)
+	void DeathEnd();
 
 	void AttackGiveDamage(class AEnemy* DamagedEnemy, float WeaponDamage);
 

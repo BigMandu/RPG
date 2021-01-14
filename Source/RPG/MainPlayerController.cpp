@@ -43,6 +43,17 @@ void AMainPlayerController::BeginPlay()
 			bIsStorePageVisible = false;
 		}
 	}
+
+	if (WGameEnd)
+	{
+		GameEnd = CreateWidget<UUserWidget>(this, WGameEnd);
+		if (GameEnd)
+		{
+			GameEnd->AddToViewport();
+			GameEnd->SetVisibility(ESlateVisibility::Hidden);
+			bGameEndWidgetVisible = false;
+		}
+	}
 }
 
 void AMainPlayerController::Tick(float DeltaTime)
@@ -144,3 +155,21 @@ void AMainPlayerController::RemoveStorePage_Implementation()
 	}
 }
 
+void AMainPlayerController::DisplayGameEndWidget_Implementation()
+{
+	bGameEndWidgetVisible = true;
+
+	UGameplayStatics::SetGamePaused(this, true);
+	
+	GameEnd->SetVisibility(ESlateVisibility::Visible);
+	FInputModeGameAndUI InputMode;
+	SetInputMode(InputMode);
+	bShowMouseCursor = true;
+}
+
+void AMainPlayerController::RemoveGameEndWidget_Implementation()
+{
+	bGameEndWidgetVisible = false;
+
+	GameEnd->SetVisibility(ESlateVisibility::Hidden);
+}

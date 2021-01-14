@@ -100,6 +100,8 @@ void AEnemyAIController::DetectActor(AActor* Actor, FAIStimulus Stimulus)
 		AMainCharacter* Main = Cast<AMainCharacter>(Actor); //Main으로 캐스트.
 		if (Main)
 		{
+			if (Main->MovementStatus == EMovementStatus::EMS_Dead) //Target이 죽었을때는 감지되지 않도록 한다.
+				return;
 			if (Stimulus.WasSuccessfullySensed()) //성공적으로 감지를 했으면
 			{
 				GetWorldTimerManager().ClearTimer(LostTargetTimer); //Timer초기화.
