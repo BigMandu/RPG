@@ -35,7 +35,10 @@ AMainCharacter::AMainCharacter()
 	////////////TEST AI/////////////
 	StimuliSourceComponent = CreateDefaultSubobject<UAIPerceptionStimuliSourceComponent>(TEXT("StimuliSourceComponent"));
 
+	//LoadÇÒ¶§ FirstMapÀ» °ÅÃÄ¼­ ·ÎµùÀÌ µÇ±â¶§¹®¿¡ ÀÌ¸¦ Ã¼Å©ÇÔ.
 	bFirstLoad = false;
+
+	//Smash Ability»ç¿ëÁß ¾îµò°¡¿¡ ºÎµúÈ÷¸é ¹Ù·Î ¸ØÃß°Ô ÇÏ±â À§ÇØ¼­.
 	bCapsuleHit = false;
 
 	/*******************************/
@@ -121,6 +124,12 @@ AMainCharacter::AMainCharacter()
 	ThrowAbility_Distance = 800.f;
 	ThrowAbility_Rotation = 1024.f;
 	SmashAbility_Damage = 200.f;
+
+	/////////////////////////
+	//Ability cool down
+	ThrowWeaponCooldown = 3.f;
+	SmashCooldown = 5.f;
+
 	
 	/*******************************/
 	//***** Player Combat  *****//
@@ -145,8 +154,20 @@ void AMainCharacter::BeginPlay()
 	StimuliSourceComponent->bAutoRegister = true;
 	StimuliSourceComponent->RegisterForSense(SenseSight); //Sight Sense¸¦ µî·Ï.
 
+
+	//Ä¸½¶ÄÄÆ÷³ÍÆ®ÀÇ Èý ÆÇÁ¤ ÇÔ¼ö
 	GetCapsuleComponent()->OnComponentHit.AddDynamic(this, &AMainCharacter::CapsuleOnHit);
 
+
+	//Abiltiy cooldownÀ» À§ÇÔ.
+	ThrowTick = ThrowWeaponCooldown;
+	SmashTick = SmashCooldown;
+
+	bCanThrow = true;
+	bCanSmash = true;
+	///Beginplay¿¡ ÃÊ±âÈ­¸¦ ÇØÁà¼­ level transitionÀÌ³ª, ·ÎµåÇÒ¶§ ¹Ù·Î »ç¿ëÇÒ ¼ö ÀÖµµ·Ï ÇØÁØ´Ù.
+
+	/// ¸Ê·ÎµùÀ» À§ÇÑ ÀÛ¾÷
 	FString CurMapName = GetWorld()->GetMapName();
 	CurMapName.RemoveFromStart(GetWorld()->StreamingLevelsPrefix);
 	UE_LOG(LogTemp, Warning, TEXT("%s"), *CurMapName);
@@ -489,16 +510,21 @@ void AMainCharacter::RMBDown()
 {
 	bRMBDown = true;
 	bClickRMB = true;
-
-	Ability_ThrowWeapon_Before();
-	
+	if (Ability_ThrowWeapon_Cooldown_Check())
+	{
+		Ability_ThrowWeapon_Before();
+	}	
 }
 
 void AMainCharacter::RMBUp()
 {
 	bRMBDown = false;
 	bAttacking = false;
-	Ability_ThrowWeapon();
+	if(bCanThrow)
+	{
+		bCanThrow = false;
+		Ability_ThrowWeapon();
+	}	
 }
 
 void AMainCharacter::Jump()
@@ -521,7 +547,11 @@ void AMainCharacter::StopJumping()
 void AMainCharacter::FKeyDown()
 {
 	bFkeyDown = true;
-	Ability_Smash();
+	if (Ability_Smash_Cooldown_Check())
+	{
+		Ability_Smash();
+	}
+	
 }
 
 void AMainCharacter::FKeyUp()
@@ -850,6 +880,10 @@ float AMainCharacter::TakeDamage(float DamageAmount, struct FDamageEvent const& 
 	
 	if (bAbilitySmash == false) //ÇØ´ç ¾îºô¸®Æ¼ »ç¿ë½Ã Damage¸¦ ¹ÞÁö ¾Ê±â ÇÏ±â À§ÇÔ.
 	{
+		if (HitSound)
+		{
+			UGameplayStatics::PlaySound2D(this, HitSound);
+		}
 		DecrementHealth(DamageAmount);
 	}
 	return DamageAmount;
@@ -1062,7 +1096,7 @@ void AMainCharacter::Ability_ThrowWeapon_Before()
 {
 	if (bRMBDown)
 	{
-		if (EquippedWeapon && !bAttacking)
+		//if (EquippedWeapon && !bAttacking)
 		{
 			bAttacking = true;
 			UAnimInstance* Anim = GetMesh()->GetAnimInstance();
@@ -1110,10 +1144,8 @@ void AMainCharacter::Ability_ThrowWeapon()
 					AnimInstance->Montage_JumpToSection(FName("Execute"), AbilityThrowWeaponMontage);
 
 					EquippedWeapon->ThrowWeapon(this, AttachedSocketName, ThrowAbility_Distance, ThrowAbility_Rotation);
-					UE_LOG(LogTemp, Warning, TEXT("Main : AbilityRotation : %f"), ThrowAbility_Rotation);
-					//EquippedWeapon->SetWeaponOwner(nullptr);
 					EquippedWeapon = nullptr;
-					//FVector WeaponThrow = FMath::VInterpTo(EquippedWeapon->GetActorLocation(), Destination, GetWorld()->GetDeltaSeconds(), 10.f);
+					//UE_LOG(LogTemp, Warning, TEXT("Main : AbilityRotation : %f"), ThrowAbility_Rotation);					
 				}
 			}
 		}
@@ -1127,12 +1159,15 @@ void AMainCharacter::Ability_ThrowWeapon_Finish() //AWeapon::ReceiveWeapon¿¡¼­ È
 	{
 		AnimInstance->Montage_Play(AbilityThrowWeaponMontage, 1.5f);
 		AnimInstance->Montage_JumpToSection(FName("Finish"), AbilityThrowWeaponMontage);
+
+		//³¡³­ ÈÄ ºÎÅÍ ÄðÅ¸ÀÓ »ý¼º.
+		GetWorldTimerManager().SetTimer(ThrowWeaponCooldownHandle, this, &AMainCharacter::Ability_ThrowWeapon_Cooldown, GetWorld()->GetDeltaSeconds(), true);
 	}
 }
 
 void AMainCharacter::Ability_Smash()
 {
-	if (EquippedWeapon && AbilitySmashMontage && !bAttacking && !GetCharacterMovement()->IsFalling())
+	//if (EquippedWeapon && AbilitySmashMontage && !bAttacking && !GetCharacterMovement()->IsFalling()) //Cooldown check¿¡¼­ ÇØ¹ö¸°´Ù.
 	{
 		UAnimInstance* AnimInstance = GetMesh()->GetAnimInstance();
 		if (AnimInstance)
@@ -1181,8 +1216,83 @@ void AMainCharacter::Ability_Smash_Finish() //°øÁß¿¡ µµÂøÇÑµÚ Ç®¾îÁÖ´Â°Í.
 	GetWorldTimerManager().ClearTimer(AbilitySmashHandle);
 	GetCharacterMovement()->SetMovementMode(EMovementMode::MOVE_Walking);
 	GetCapsuleComponent()->SetCollisionResponseToChannel(ECollisionChannel::ECC_Pawn, ECollisionResponse::ECR_Block);
+
+
+	//³¡³­ÈÄ ºÎÅÍ ÄðÅ¸ÀÓÀ» µ¹¸°´Ù.
+	GetWorldTimerManager().SetTimer(SmashCooldownHandle, this, &AMainCharacter::Ability_Smash_Cooldown, GetWorld()->GetDeltaSeconds(), true);
 }
 
+
+//**************************************************//
+//				Ability Cool down Àû¿ë				//
+//**************************************************//
+
+bool AMainCharacter::Ability_ThrowWeapon_Cooldown_Check()
+{
+	//ThrowWeaponCooldown = 3.f; ÃÊ±â°ª
+	if (EquippedWeapon && !bAttacking) //¿©±â¼­ °ËÁõÀ» ÇÑ´Ù.
+	{
+		UE_LOG(LogTemp, Warning, TEXT("Check:: ThrowTick is : %.2f"), ThrowTick);
+
+		if (ThrowTick >= ThrowWeaponCooldown)
+		{
+			UE_LOG(LogTemp, Warning, TEXT("Check:: ThrowTick clear"));
+			ThrowTick = 0.f;
+			return true;
+		}
+		else return false;
+	}
+	else return false;
+}
+
+void AMainCharacter::Ability_ThrowWeapon_Cooldown() //Ability_ThrowWeapon_Finish¿¡¼­ Timer·Î È£ÃâÇÑ´Ù.
+{
+	ThrowTick += GetWorld()->GetDeltaSeconds();
+	UE_LOG(LogTemp, Warning, TEXT("Cooldown:: ThrowTick is : %.2f"), ThrowTick);
+	if (ThrowTick >= ThrowWeaponCooldown)
+	{
+		UE_LOG(LogTemp, Warning, TEXT("Cooldown:: Value is Equal, ThrowTick : %.2f, SmashCooldown : %.2f"), ThrowTick, ThrowWeaponCooldown);
+		GetWorldTimerManager().ClearTimer(ThrowWeaponCooldownHandle);
+		bCanThrow = true;
+		return;
+	}
+}
+
+
+bool AMainCharacter::Ability_Smash_Cooldown_Check()
+{
+	//SmashCooldown = 5.f; ÃÊ±â°ª
+
+	//¿©±â¼­ ¾Æ¿¹ °ËÁõÀ» ÇØ¹ö¸°´Ù
+	if (EquippedWeapon && AbilitySmashMontage && !bAttacking && !GetCharacterMovement()->IsFalling())
+	{
+		UE_LOG(LogTemp, Warning, TEXT("Check:: SmashTick is : %.2f"), SmashTick);
+
+		if (SmashTick >= SmashCooldown)
+		{
+			UE_LOG(LogTemp, Warning, TEXT("Check:: SmashTick clear"));
+			SmashTick = 0.f;
+			return true;
+		}
+		else return false;
+	}
+	else return false;
+}
+
+
+
+void AMainCharacter::Ability_Smash_Cooldown() //Ability_Smash_Finish¿¡¼­ Timer·Î È£ÃâÇÑ´Ù.
+{
+	SmashTick += GetWorld()->GetDeltaSeconds();
+	UE_LOG(LogTemp, Warning, TEXT("Cooldown:: SmashTick is : %.2f"), SmashTick);
+	if (SmashTick >= SmashCooldown)
+	{
+		UE_LOG(LogTemp, Warning, TEXT("Cooldown:: Value is Equal, SmashTick : %.2f, SmashCooldown : %.2f"), SmashTick, SmashCooldown);
+		GetWorldTimerManager().ClearTimer(SmashCooldownHandle);
+		bCanSmash = true;
+		return;
+	}
+}
 /*******************************/
 //--- Game Level,Save,Load  ---//
 /*******************************/

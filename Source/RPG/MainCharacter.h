@@ -65,6 +65,9 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Level Sound")
 	USoundCue* LevelDungeonSound;
 
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Particles")
+	class USoundCue* HitSound;
+
 	class UAudioComponent* LevelAudioComponent;
 
 	//Capsule Component 충돌 관련
@@ -355,6 +358,16 @@ public:
 
 	bool CalcAirAttack();
 
+	UFUNCTION(BlueprintCallable)
+	void ComboSave();
+
+	UFUNCTION(BlueprintCallable)
+	void ComboReset();
+
+	/*******************************/
+	//---     Player Ability     ---//
+	/*******************************/
+
 	void Ability_ThrowWeapon_Before();
 	void Ability_ThrowWeapon();
 	void Ability_ThrowWeapon_Finish();
@@ -362,15 +375,28 @@ public:
 	void Ability_Smash();
 	void Ability_Smash_Finish();
 
-	UFUNCTION(BlueprintCallable)
-	void ComboSave();
+	FTimerHandle ThrowWeaponCooldownHandle;
+	FTimerHandle SmashCooldownHandle;
 
-	UFUNCTION(BlueprintCallable)
-	void ComboReset();
+	bool bCanThrow;
+	bool bCanSmash;
 
-	
+	bool Ability_ThrowWeapon_Cooldown_Check();
+	bool Ability_Smash_Cooldown_Check();
 
+	void Ability_ThrowWeapon_Cooldown();
+	void Ability_Smash_Cooldown();
 
+	UPROPERTY(VisibleAnywhere, BlueprintReadWrite, Category = "Combat")
+	float ThrowWeaponCooldown; //스킬 쿨타임
+	UPROPERTY(VisibleAnywhere, BlueprintReadWrite, Category = "Combat")
+	float SmashCooldown; //스킬 쿨타임
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Combat")
+	float ThrowTick; //skill사용 직후 0부터 SmashCooldown까지 매 tick마다 + 되는 값.
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Combat")
+	float SmashTick; //skill사용 직후 0부터 SmashCooldown까지 매 tick마다 + 되는 값.
 
 	/*******************************/
 	//--- Game Level,Save,Load  ---//

@@ -288,7 +288,12 @@ void AWeapon::CombatCollisionOverlapBegin(UPrimitiveComponent* OverlappedCompone
 					//UE_LOG(LogTemp, Warning, TEXT("Weapon::Overlap Actor is Enemy"));
 					if (Enemy->HitParticle)
 					{
-						FVector HitLocation = SweepResult.ImpactPoint; //Áö±Ý ¾ÈµÊ. 
+						FVector EnemyLocation = Enemy->GetActorLocation();
+						
+						FVector HitLocation = FVector(EnemyLocation.X, EnemyLocation.Y, EnemyLocation.Z + Enemy->GetDefaultHalfHeight());
+
+						UE_LOG(LogTemp, Warning, TEXT("Enemy World location is : %s"), *Enemy->GetActorLocation().ToString());
+						UE_LOG(LogTemp, Warning, TEXT("HitLocation is : %s"), *HitLocation.ToString());
 						/*
 						UE_LOG(LogTemp, Warning, TEXT("Enemy World location is : %s"), *Enemy->GetActorLocation().ToString());
 						UE_LOG(LogTemp, Warning, TEXT("Hit Actor Name is : %s"), *SweepResult.GetActor()->GetFName().ToString());

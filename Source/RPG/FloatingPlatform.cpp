@@ -52,7 +52,7 @@ void AFloatingPlatform::Tick(float DeltaTime)
 		Time += DeltaTime;
 		AlphaTime = Time / RequireTime;
 
-		UE_LOG(LogTemp, Warning, TEXT("DeltaTime : %.2f, Time : %.2f, AlphaTime : %.2f"), DeltaTime, Time, AlphaTime);
+		//UE_LOG(LogTemp, Warning, TEXT("DeltaTime : %.2f, Time : %.2f, AlphaTime : %.2f"), DeltaTime, Time, AlphaTime);
 
 
 		// 기존에 사용된 VInterpTo
