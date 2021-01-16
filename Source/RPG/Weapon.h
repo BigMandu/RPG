@@ -84,6 +84,7 @@ public:
 	/********************************/
 	//  Weapon Owner관련  이 무기를 갖고있는 Player를 가져온다.
 	/********************************/
+
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Item")
 	class ACharacter* WeaponOwner;
 
@@ -110,8 +111,13 @@ public:
 	void Equip(class ACharacter* Character);
 	void Equip(class ACharacter* Character, const USkeletalMeshSocket* Socket);
 
+	//////////////////Ability//////////////
+
 	void ThrowWeapon(ACharacter* Character, FName SocketName, float AbilityDistance, float AbilityRotation);
 	void ReceiveWeapon(ACharacter* Character, FVector BoxExtent);
+	
+	class AMainCharacter* Main;
+
 	float Time;
 	float AlphaTime;
 	FTimerHandle WeaponThrowHandle;

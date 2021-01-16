@@ -93,20 +93,20 @@ void AWeapon::OnOverlapEnd(UPrimitiveComponent* OverlappedComponent, AActor* Oth
 
 void AWeapon::Equip(class ACharacter* Character)
 {
-	AMainCharacter* MainChar = Cast<AMainCharacter>(Character);
+	Main = Cast<AMainCharacter>(Character);
 
-	if (MainChar)
+	if (Main)
 	{
 		//Camera를 무시하도록 설정
 		SkeletalMesh->SetCollisionResponseToChannel(ECollisionChannel::ECC_Camera, ECollisionResponse::ECR_Ignore);
 		SkeletalMesh->SetSimulatePhysics(false); //Main Character와 Attach시켜주기 위해 physics를 끔.
 		CollisionVolume->SetCollisionEnabled(ECollisionEnabled::NoCollision);
 
-		const USkeletalMeshSocket* RightWeaponSocket = MainChar->GetMesh()->GetSocketByName("hand_r_weapon");
+		const USkeletalMeshSocket* RightWeaponSocket = Main->GetMesh()->GetSocketByName("hand_r_weapon");
 
 		if (EquipedSound)
 		{
-			if (WeaponState == EWeaponState::EWS_Equipped)  //칼을 던지고 다시 받을때 재생되는 소리 따로 해둠.
+			if (WeaponState == EWeaponState::EWS_Equipped && AbilityReceiveSound)  //칼을 던지고 다시 받을때 재생되는 소리 따로 해둠.
 			{
 				UGameplayStatics::PlaySound2D(this, AbilityReceiveSound);
 			}
@@ -125,9 +125,9 @@ void AWeapon::Equip(class ACharacter* Character)
 			SetWeaponState(EWeaponState::EWS_Equipped);
 			bRotate = false;
 			//SetWeaponState(EWeaponState::EWS_Equipped);
-			RightWeaponSocket->AttachActor(this, MainChar->GetMesh());
-			MainChar->SetEquippedWeapon(this); //Main의 SetEquipped Weapon 호출.
-			MainChar->SetActiveOverlappingActor(nullptr);
+			RightWeaponSocket->AttachActor(this, Main->GetMesh());
+			Main->SetEquippedWeapon(this); //Main의 SetEquipped Weapon 호출.
+			Main->SetActiveOverlappingActor(nullptr);
 		}
 
 		
@@ -153,7 +153,7 @@ void AWeapon::Equip(class ACharacter* Character, const USkeletalMeshSocket* Sock
 
 void AWeapon::ThrowWeapon(ACharacter* Character, FName SocketName, float AbilityDistance, float AbilityRotation)
 {
-	AMainCharacter* Main = Cast<AMainCharacter>(Character);
+	Main = Cast<AMainCharacter>(Character);
 	if (Main)
 	{
 		this->DetachFromActor(FDetachmentTransformRules(EDetachmentRule::KeepWorld, EDetachmentRule::KeepWorld, EDetachmentRule::KeepWorld, false));
@@ -194,6 +194,11 @@ void AWeapon::ThrowWeapon(ACharacter* Character, FName SocketName, float Ability
 			//UE_LOG(LogTemp, Warning, TEXT("AbilityRotation : %f"), AbilityRotation);
 			SetActorRotation(WeaponRolling);
 
+			if (Main == nullptr)
+			{
+				Main = Cast<AMainCharacter>(Character);
+			}
+
 			if (AbilityThrowSound && GetActorRotation().Roll >= 0.f)
 			{	
 				UGameplayStatics::PlaySound2D(this, AbilityThrowSound);	
@@ -214,11 +219,11 @@ void AWeapon::ThrowWeapon(ACharacter* Character, FName SocketName, float Ability
 
 void AWeapon::ReceiveWeapon(ACharacter* Character, FVector BoxExtent)
 {
-	AMainCharacter* Main = Cast<AMainCharacter>(Character);
+	Main = Cast<AMainCharacter>(Character);
 	if (Main)
 	{
 		GetWorldTimerManager().ClearTimer(WeaponThrowHandle);
-		
+		 
 		Time = 0.f;
 		AlphaTime = 0.f;
 
@@ -251,6 +256,7 @@ void AWeapon::ReceiveWeapon(ACharacter* Character, FVector BoxExtent)
 			}
 			if (AlphaTime >= 0.9f)
 			{
+
 				//UE_LOG(LogTemp, Warning, TEXT("Alpha Time is over 0.9"));
 				SetActorRotation(FRotator(75.f, 0.f, 0.f));
 
@@ -263,8 +269,16 @@ void AWeapon::ReceiveWeapon(ACharacter* Character, FVector BoxExtent)
 				CombatCollision->SetCollisionResponseToChannel(ECollisionChannel::ECC_Pawn, ECollisionResponse::ECR_Overlap);
 				CombatCollision->SetCollisionResponseToChannel(ECollisionChannel::ECC_WorldStatic, ECollisionResponse::ECR_Block);
 
-				Equip(Main);
+				if (Main == nullptr)
+				{
+					Main = Cast<AMainCharacter>(Character);
+				}
+				
+				//에러 발생지점이 여기인것 같다고 한다. Main 포인터가 댕글링 포인터가 되면서 호출이 안되는거 같음.
+				//해결 -> Main변수를 header에 선언, 이를 사용하며. 수시로 Main이 널인지 확인함.
 				Main->Ability_ThrowWeapon_Finish();
+				Equip(Main);			
+				//함수 호출 순서를 바꿔줬더니 된다.. Equip에서 timerclear를 하고 있어서 이렇게 해야함.
 			}
 
 			}, GetWorld()->GetDeltaSeconds(), true);		

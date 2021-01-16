@@ -1232,11 +1232,11 @@ bool AMainCharacter::Ability_ThrowWeapon_Cooldown_Check()
 	//ThrowWeaponCooldown = 3.f; 초기값
 	if (EquippedWeapon && !bAttacking) //여기서 검증을 한다.
 	{
-		UE_LOG(LogTemp, Warning, TEXT("Check:: ThrowTick is : %.2f"), ThrowTick);
+		//UE_LOG(LogTemp, Warning, TEXT("Check:: ThrowTick is : %.2f"), ThrowTick);
 
 		if (ThrowTick >= ThrowWeaponCooldown)
 		{
-			UE_LOG(LogTemp, Warning, TEXT("Check:: ThrowTick clear"));
+			//UE_LOG(LogTemp, Warning, TEXT("Check:: ThrowTick clear"));
 			ThrowTick = 0.f;
 			return true;
 		}
@@ -1248,10 +1248,10 @@ bool AMainCharacter::Ability_ThrowWeapon_Cooldown_Check()
 void AMainCharacter::Ability_ThrowWeapon_Cooldown() //Ability_ThrowWeapon_Finish에서 Timer로 호출한다.
 {
 	ThrowTick += GetWorld()->GetDeltaSeconds();
-	UE_LOG(LogTemp, Warning, TEXT("Cooldown:: ThrowTick is : %.2f"), ThrowTick);
+	//UE_LOG(LogTemp, Warning, TEXT("Cooldown:: ThrowTick is : %.2f"), ThrowTick);
 	if (ThrowTick >= ThrowWeaponCooldown)
 	{
-		UE_LOG(LogTemp, Warning, TEXT("Cooldown:: Value is Equal, ThrowTick : %.2f, SmashCooldown : %.2f"), ThrowTick, ThrowWeaponCooldown);
+		//UE_LOG(LogTemp, Warning, TEXT("Cooldown:: Value is Equal, ThrowTick : %.2f, SmashCooldown : %.2f"), ThrowTick, ThrowWeaponCooldown);
 		GetWorldTimerManager().ClearTimer(ThrowWeaponCooldownHandle);
 		bCanThrow = true;
 		return;
@@ -1266,11 +1266,11 @@ bool AMainCharacter::Ability_Smash_Cooldown_Check()
 	//여기서 아예 검증을 해버린다
 	if (EquippedWeapon && AbilitySmashMontage && !bAttacking && !GetCharacterMovement()->IsFalling())
 	{
-		UE_LOG(LogTemp, Warning, TEXT("Check:: SmashTick is : %.2f"), SmashTick);
+		//UE_LOG(LogTemp, Warning, TEXT("Check:: SmashTick is : %.2f"), SmashTick);
 
 		if (SmashTick >= SmashCooldown)
 		{
-			UE_LOG(LogTemp, Warning, TEXT("Check:: SmashTick clear"));
+			//UE_LOG(LogTemp, Warning, TEXT("Check:: SmashTick clear"));
 			SmashTick = 0.f;
 			return true;
 		}
@@ -1284,10 +1284,10 @@ bool AMainCharacter::Ability_Smash_Cooldown_Check()
 void AMainCharacter::Ability_Smash_Cooldown() //Ability_Smash_Finish에서 Timer로 호출한다.
 {
 	SmashTick += GetWorld()->GetDeltaSeconds();
-	UE_LOG(LogTemp, Warning, TEXT("Cooldown:: SmashTick is : %.2f"), SmashTick);
+	//UE_LOG(LogTemp, Warning, TEXT("Cooldown:: SmashTick is : %.2f"), SmashTick);
 	if (SmashTick >= SmashCooldown)
 	{
-		UE_LOG(LogTemp, Warning, TEXT("Cooldown:: Value is Equal, SmashTick : %.2f, SmashCooldown : %.2f"), SmashTick, SmashCooldown);
+		//UE_LOG(LogTemp, Warning, TEXT("Cooldown:: Value is Equal, SmashTick : %.2f, SmashCooldown : %.2f"), SmashTick, SmashCooldown);
 		GetWorldTimerManager().ClearTimer(SmashCooldownHandle);
 		bCanSmash = true;
 		return;

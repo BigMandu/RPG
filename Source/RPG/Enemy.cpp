@@ -578,7 +578,7 @@ void AEnemy::Attack(UBlackboardComponent* BBComp)
 
 								/*https://www.notion.so/bigdumpling/b25aa96658004f3dbfdeed7624452ecc */
 								FName PlayingSection = AnimInstance->Montage_GetCurrentSection(DashAttackCombatMontage); 
-								UE_LOG(LogTemp, Warning, TEXT("Dash anim cursection is : %s"), *PlayingSection.ToString());
+								//UE_LOG(LogTemp, Warning, TEXT("Dash anim cursection is : %s"), *PlayingSection.ToString());
 								if (PlayingSection != TEXT("Dash"))
 								{
 									return;
