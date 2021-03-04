@@ -7,6 +7,7 @@
 #include "NavigationSystem.h"
 #include "BehaviorTree/BlackboardComponent.h"
 #include "GameFramework/CharacterMovementComponent.h"
+#include "Kismet/KismetSystemLibrary.h"
 
 UBTTask_SearchPatrolLocation::UBTTask_SearchPatrolLocation()
 {
@@ -41,8 +42,11 @@ EBTNodeResult::Type UBTTask_SearchPatrolLocation::ExecuteTask(UBehaviorTreeCompo
 			BBComp->SetValueAsVector(AICon->PatrolPosKey,PatrolLo); //Á¤Âû À§Ä¡¸¦ Blackboard Key·Î ³Ñ°ÜÁÜ.
 			//µð¹ö±ë¿ë
 			/*{
-				UE_LOG(LogTemp, Warning, TEXT("Start From : %s, Move To : %s"), *OriginLo.ToString(), *PatrolLo.ToString());
+				UKismetSystemLibrary::DrawDebugSphere(this, PatrolLo, 50.f, 12, FLinearColor::Green, 4.f, 2.f);
+				UE_LOG(LogTemp, Warning, TEXT("Start From : %s, CurLocation : %s, Move To : %s"), *OriginLo.ToString(), *(Enemy->GetActorLocation().ToString()), *PatrolLo.ToString());
 			}*/
+
+			
 			Result = EBTNodeResult::Succeeded;
 		}
 	}

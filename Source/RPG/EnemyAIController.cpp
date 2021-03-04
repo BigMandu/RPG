@@ -180,8 +180,12 @@ void AEnemyAIController::OnPossess(APawn * InPawn)
 	Enemy = Cast<AEnemy>(InPawn);
 	if (Enemy && Enemy->EnemyBehavior)
 	{
+		FVector Location;
+		Location = Enemy->GetActorLocation();
+
 		BBComp->InitializeBlackboard(*(Enemy->EnemyBehavior->BlackboardAsset)); //Blackboard초기화.
-		BBComp->SetValueAsVector(OriginPosKey, Enemy->GetActorLocation()); //월드에 스폰한 위치를 저장
+		//BBComp->SetValueAsVector(OriginPosKey, Enemy->GetActorLocation()); //월드에 스폰한 위치를 저장
+		BBComp->SetValueAsVector(OriginPosKey, FVector(Location.X, Location.Y, 0.f)); //Z를 0으로 해준다. 그냥 GetActorLocation으로 해버리면 SpawnActor가 위에있을때 Z값을 바로 불러와서 원점을 못간다.
 
 
 
