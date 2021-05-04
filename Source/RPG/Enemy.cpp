@@ -556,9 +556,9 @@ void AEnemy::Attack(UBlackboardComponent* BBComp)
 			}
 			if (!CloseCombat && DashAttack) //Dash공격이 true면
 			{
-				FVector CurrentVector = GetActorLocation();
-				FVector DashVector(GetActorForwardVector() * 1200.f);
-				DashVector.Z = CurrentVector.Z; //오르막길, 내리막길에선 어떻게 하지??
+				//FVector CurrentVector = GetActorLocation();
+				//FVector DashVector(GetActorForwardVector() * 1200.f);
+				//DashVector.Z = CurrentVector.Z; //오르막길, 내리막길에선 어떻게 하지??
 
 				GetCharacterMovement()->MaxWalkSpeed = 950.f;
 
